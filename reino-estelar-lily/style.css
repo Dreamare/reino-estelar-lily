@@ -1,0 +1,362 @@
+        :root {
+            --pink-kawaii: #ff85c0;
+            --pink-soft: #ffc2e2;
+            --lavender: #d3adf7;
+            --night-deep: #0b0726;
+            --star-gold: #ffe58f;
+        }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body {
+            margin: 0;
+            padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+            background: radial-gradient(circle at top, #1f1147 0%, #090518 100%);
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            overflow: hidden;
+            color: #fff;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 1120px;
+            max-height: 700px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 0 45px rgba(255, 133, 192, 0.35), inset 0 0 20px rgba(211, 173, 247, 0.25);
+            border: 4px solid rgba(255, 194, 226, 0.5);
+            background: #0d0826;
+        }
+        @media (max-width: 1120px), (max-height: 700px) {
+            #game-wrapper {
+                max-width: 100vw;
+                max-height: 100vh;
+                border-radius: 0;
+                border: none;
+            }
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            outline: none;
+        }
+        .kawaii-pill {
+            background: rgba(29, 17, 69, 0.84);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 182, 230, 0.65);
+            box-shadow: 0 4px 15px rgba(255, 133, 192, 0.22);
+            border-radius: 9999px;
+        }
+        .kawaii-pill-danger {
+            background: rgba(120, 18, 52, 0.92);
+            border: 2px solid #ff85a1;
+            box-shadow: 0 0 18px rgba(255, 77, 109, 0.75);
+            animation: pulseDanger 0.65s infinite alternate;
+        }
+        @keyframes pulseDanger {
+            from { transform: scale(1); }
+            to { transform: scale(1.07); }
+        }
+        .kawaii-btn {
+            background: linear-gradient(180deg, #ff9ed2 0%, #ff5ca8 100%);
+            border: 3px solid #fff0f8;
+            box-shadow: 0 6px 0 #b82b6f, 0 12px 24px rgba(255, 92, 168, 0.5);
+            color: white;
+            text-shadow: 0 2px 3px rgba(135, 22, 78, 0.65);
+            transition: all 0.14s ease;
+            cursor: pointer;
+        }
+        .kawaii-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            filter: brightness(1.06);
+        }
+        .kawaii-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b82b6f, 0 4px 10px rgba(255, 92, 168, 0.4);
+        }
+        .kawaii-btn-secondary {
+            background: rgba(65, 36, 125, 0.85);
+            border: 2px solid rgba(255, 194, 226, 0.75);
+            color: #ffe5f4;
+            transition: all 0.14s ease;
+            cursor: pointer;
+        }
+        .kawaii-btn-secondary:hover {
+            background: rgba(98, 54, 178, 0.9);
+            transform: translateY(-1px);
+        }
+        .touch-btn {
+            background: rgba(255, 182, 230, 0.30);
+            border: 2.5px solid rgba(255, 224, 245, 0.85);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 14px rgba(255, 105, 180, 0.35), inset 0 2px 6px rgba(255, 255, 255, 0.45);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            transition: transform 0.08s ease, background 0.08s ease;
+            touch-action: none;
+            cursor: pointer;
+        }
+        .touch-btn:active, .touch-btn.active {
+            transform: scale(0.92);
+            background: rgba(255, 133, 192, 0.75);
+            border-color: #fff;
+        }
+        input[type=range].kawaii-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 68px;
+            height: 6px;
+            background: rgba(255, 194, 226, 0.35);
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type=range].kawaii-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff85c0;
+            border: 2px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(255, 133, 192, 0.8);
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-7px); }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+        @keyframes pulseStartBtn {
+            0%, 100% { transform: scale(1); box-shadow: 0 6px 0 #b82b6f, 0 0 25px rgba(255, 133, 192, 0.7); }
+            50% { transform: scale(1.04); box-shadow: 0 6px 0 #b82b6f, 0 0 40px rgba(255, 229, 143, 0.95); }
+        }
+        .pulse-start {
+            animation: pulseStartBtn 2s infinite ease-in-out;
+        }
+        /* "Pop" rojo del contador de muertes cada vez que Lily pierde */
+        @keyframes deathPop {
+            0%   { transform: scale(1); }
+            30%  { transform: scale(1.25); background: rgba(150, 25, 60, 0.95); border-color: #ff85a1; }
+            100% { transform: scale(1); }
+        }
+        .death-pop {
+            animation: deathPop 0.6s ease-out;
+        }
+        .mini-pill {
+            display: flex; align-items: center; gap: 4px;
+            padding: 2px 11px; min-height: 30px;
+            font: 700 15px/1 Fredoka, sans-serif; color: #ffe58f;
+            background: rgba(28, 12, 66, 0.72);
+            border: 1.5px solid rgba(255, 158, 210, 0.7);
+            border-radius: 999px;
+            text-shadow: 0 1px 2px #261247;
+        }
+        .mini-pill.danger {
+            color: #ff4d6d;
+            border-color: #ff4d6d;
+            background: rgba(135, 18, 55, 0.94);
+            box-shadow: 0 0 16px rgba(255, 77, 109, 0.85);
+            animation: pulseDanger 0.65s infinite alternate;
+        }
+        .mini-btn { cursor: pointer; color: #ffe0f0; padding: 2px 13px; font-size: 17px; }
+        #rotate-overlay {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: #12082e; color: #ffe58f; text-align: center; padding: 24px;
+            flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+            font-weight: 700; font-size: 20px;
+        }
+        #rotate-overlay .phone { font-size: 64px; animation: rotPhone 2.2s infinite ease-in-out; }
+        @keyframes rotPhone { 0%, 30% { transform: rotate(0deg); } 70%, 100% { transform: rotate(-90deg); } }
+        @media (orientation: portrait) and (max-width: 900px) { #rotate-overlay { display: flex; } }
+        .mini-btn:active { transform: scale(0.92); }
+
+        /* ==============================================================
+         * PANTALLA DE PORTADA CELESTIAL (#title-overlay)
+         * ============================================================== */
+        #title-overlay {
+            background-color: #13082c;
+            background-image:
+                radial-gradient(ellipse at 50% 45%, rgba(28, 12, 62, 0.10) 0%, rgba(12, 5, 32, 0.34) 100%),
+                url('./asets/bg_start_menu.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .title-ornamental-frame {
+            position: absolute;
+            inset: 14px;
+            border: 1px solid rgba(255, 229, 180, 0.35);
+            pointer-events: none;
+            z-index: 2;
+            box-shadow: inset 0 0 28px rgba(255, 210, 175, 0.08);
+        }
+        .title-frame-corner {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            pointer-events: none;
+        }
+        .title-frame-corner::before,
+        .title-frame-corner::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 229, 180, 0.78);
+            box-shadow: 0 0 8px rgba(255, 229, 180, 0.55);
+        }
+        .title-frame-corner.tl { top: -2px; left: -2px; }
+        .title-frame-corner.tl::before { top: 0; left: 0; width: 16px; height: 2px; }
+        .title-frame-corner.tl::after  { top: 0; left: 0; width: 2px; height: 16px; }
+
+        .title-frame-corner.tr { top: -2px; right: -2px; }
+        .title-frame-corner.tr::before { top: 0; right: 0; width: 16px; height: 2px; }
+        .title-frame-corner.tr::after  { top: 0; right: 0; width: 2px; height: 16px; }
+
+        .title-frame-corner.bl { bottom: -2px; left: -2px; }
+        .title-frame-corner.bl::before { bottom: 0; left: 0; width: 16px; height: 2px; }
+        .title-frame-corner.bl::after  { bottom: 0; left: 0; width: 2px; height: 16px; }
+
+        .title-frame-corner.br { bottom: -2px; right: -2px; }
+        .title-frame-corner.br::before { bottom: 0; right: 0; width: 16px; height: 2px; }
+        .title-frame-corner.br::after  { bottom: 0; right: 0; width: 2px; height: 16px; }
+
+        .title-press-prompt {
+            font-family: 'Cormorant Garamond', 'Cinzel', Georgia, serif;
+            letter-spacing: 0.12em;
+            color: rgba(255, 244, 225, 0.94);
+            text-shadow: 0 2px 10px rgba(20, 8, 46, 0.9), 0 0 18px rgba(255, 210, 170, 0.45);
+            animation: softPromptBlink 2.6s ease-in-out infinite;
+        }
+        @keyframes softPromptBlink {
+            0%, 100% { opacity: 0.96; transform: scale(1); }
+            50% { opacity: 0.42; transform: scale(0.995); }
+        }
+
+        /* Botones rectangulares cristalinos celestiales */
+        .celestial-menu-btn {
+            position: relative;
+            width: min(350px, 82vw);
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-radius: 5px;
+            font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+            cursor: pointer;
+            backdrop-filter: blur(7px);
+            -webkit-backdrop-filter: blur(7px);
+            outline: none;
+        }
+        @media (max-height: 580px) {
+            .celestial-menu-btn {
+                height: 38px;
+                font-size: 12.5px;
+            }
+        }
+        .celestial-menu-btn.celestial-btn-active {
+            background:
+                linear-gradient(90deg, rgba(255, 150, 175, 0.36) 0%, rgba(255, 196, 152, 0.44) 50%, rgba(255, 150, 175, 0.36) 100%),
+                rgba(255, 175, 155, 0.35);
+            border: 1.5px solid #ffe5b4;
+            color: #fffaf0;
+            text-shadow: 0 1px 6px rgba(95, 25, 65, 0.85), 0 0 14px rgba(255, 229, 180, 0.75);
+            box-shadow:
+                0 0 22px rgba(255, 160, 195, 0.62),
+                0 0 42px rgba(255, 215, 155, 0.32),
+                inset 0 0 18px rgba(255, 229, 180, 0.35);
+            transform: scale(1.03);
+        }
+        .celestial-menu-btn.celestial-btn-active::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 8px;
+            background:
+                radial-gradient(circle at 0% 50%, rgba(255, 229, 180, 0.65) 0%, transparent 38%),
+                radial-gradient(circle at 100% 50%, rgba(255, 229, 180, 0.65) 0%, transparent 38%),
+                radial-gradient(circle at 50% 0%, rgba(255, 185, 210, 0.45) 0%, transparent 45%),
+                radial-gradient(circle at 50% 100%, rgba(255, 185, 210, 0.45) 0%, transparent 45%);
+            pointer-events: none;
+            z-index: -1;
+            filter: blur(4px);
+        }
+        .celestial-menu-btn.celestial-btn-inactive {
+            background: rgba(35, 22, 68, 0.68);
+            border: 1px solid rgba(255, 220, 240, 0.4);
+            color: rgba(244, 232, 255, 0.88);
+            text-shadow: 0 2px 4px rgba(10, 5, 25, 0.9);
+            box-shadow: 0 6px 20px rgba(10, 5, 28, 0.45), inset 0 0 12px rgba(190, 155, 235, 0.10);
+        }
+        .celestial-menu-btn:active {
+            transform: scale(0.98);
+        }
+        .celestial-corner-diamond {
+            position: absolute;
+            font-size: 9px;
+            line-height: 1;
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+        .celestial-corner-diamond.tl { top: -5px; left: -5px; }
+        .celestial-corner-diamond.tr { top: -5px; right: -5px; }
+        .celestial-corner-diamond.bl { bottom: -5px; left: -5px; }
+        .celestial-corner-diamond.br { bottom: -5px; right: -5px; }
+        .celestial-btn-active .celestial-corner-diamond {
+            color: #ffe5b4;
+            text-shadow: 0 0 8px #ffe5b4, 0 0 14px #ff9ed2;
+        }
+        .celestial-btn-inactive .celestial-corner-diamond {
+            color: rgba(255, 220, 240, 0.55);
+        }
+        .celestial-btn-crest-top,
+        .celestial-btn-crest-bottom {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 84px;
+            height: 7px;
+            pointer-events: none;
+        }
+        .celestial-btn-crest-top { top: -6px; }
+        .celestial-btn-crest-bottom { bottom: -6px; transform: translateX(-50%) scaleY(-1); }
+        .celestial-btn-arrow {
+            display: inline-block;
+            font-weight: 800;
+            color: #ffe5b4;
+            text-shadow: 0 0 10px rgba(255, 229, 180, 0.95);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        .celestial-btn-inactive .celestial-btn-arrow {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        .celestial-btn-active .celestial-btn-arrow {
+            opacity: 1;
+        }

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio de Pruebas de Sprites v2 — Recorte Inteligente y Ritmo Natural</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+
+        canvas {
+            background-color: #ffffff;
+            background-image:
+                linear-gradient(to right, #f1f5f9 1px, transparent 1px),
+                linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center p-4 gap-4">
+
+    <!-- Encabezado y Controles de Carga -->
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+                <h1 class="text-lg font-bold text-slate-800">🧪 Laboratorio de Sprites v2 — Recorte por Celdas Estrictas
+                    + Idle con Pausas</h1>
+                <p class="text-xs text-slate-500">Aísla cada celda al 100% para evitar trozos de sprites vecinos y
+                    franjas estiradas, con anclaje al suelo y pausas naturales.</p>
+            </div>
+            <div id="status-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                Cargando desde ./asets/...
+            </div>
+        </div>
+
+        <!-- Selectores manuales -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <label
+                class="flex items-center justify-between gap-2 bg-pink-50/70 hover:bg-pink-100/70 border border-pink-200 rounded-xl p-2.5 cursor-pointer transition">
+                <div>
+                    <div class="font-bold text-pink-900">🏃‍♀️ 1. Hoja de Acción (Correr / Saltar / Golpear)</div>
+                    <div id="action-file-label" class="text-[11px] text-pink-700">Intenta cargar:
+                        ./asets/sprites_lily_animado.png</div>
+                </div>
+                <input type="file" id="input-action-sheet" accept="image/*" class="hidden">
+                <span class="bg-pink-600 text-white px-3 py-1.5 rounded-lg font-semibold shrink-0">Elegir
+                    imagen...</span>
+            </label>
+
+            <label
+                class="flex items-center justify-between gap-2 bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200 rounded-xl p-2.5 cursor-pointer transition">
+                <div>
+                    <div class="font-bold text-purple-900">😌 2. Hoja de Reposo (Idle 12 Frames)</div>
+                    <div id="idle-file-label" class="text-[11px] text-purple-700">Intenta cargar:
+                        ./asets/sprites_lily_reposo.png</div>
+                </div>
+                <input type="file" id="input-idle-sheet" accept="image/*" class="hidden">
+                <span class="bg-purple-600 text-white px-3 py-1.5 rounded-lg font-semibold shrink-0">Elegir
+                    imagen...</span>
+            </label>
+        </div>
+
+        <!-- Barra de Ajustes en Tiempo Real -->
+        <div class="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-700">
+            <div class="flex items-center gap-1.5">
+                <span class="font-semibold">Modo:</span>
+                <select id="mode-select" class="border border-slate-300 rounded-lg px-2 py-1 bg-white font-medium">
+                    <option value="playable">🎮 Jugable (Teclado + Reposo con Pausas)</option>
+                    <option value="natural_idle">😌 Solo Reposo Natural (Con Pausas y Respiración)</option>
+                    <option value="loop_run">🏃‍♀️ Solo Correr (Frames 0-5)</option>
+                    <option value="loop_jump">⬆️ Secuencia de Salto (Frames 7-10)</option>
+                    <option value="loop_punch">👊 Golpe Puñito (Frame 11)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="font-semibold">FPS Correr:</span>
+                <input type="range" id="run-fps" min="5" max="18" value="10" class="w-20 accent-pink-600">
+                <span id="run-fps-val" class="font-mono font-bold w-6">10</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="font-semibold">Pausa en Reposo:</span>
+                <input type="range" id="idle-pause-mult" min="50" max="200" value="100" class="w-20 accent-purple-600">
+                <span id="idle-pause-val" class="font-mono font-bold w-10">1.0x</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="font-semibold">Escala:</span>
+                <input type="range" id="sprite-scale" min="50" max="180" value="100" class="w-20 accent-slate-700">
+                <span id="scale-val" class="font-mono font-bold w-10">1.0x</span>
+            </div>
+
+            <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                <input type="checkbox" id="chk-breathing" checked class="accent-purple-600 w-4 h-4">
+                <span>Respiración Suave</span>
+            </label>
+
+            <label class="flex items-center gap-1.5 cursor-pointer font-medium">
+                <input type="checkbox" id="chk-debug" class="accent-pink-600 w-4 h-4">
+                <span>Ver Pivote y Cajas</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Lienzo Principal en Blanco -->
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+        <canvas id="stageCanvas" width="960" height="420" class="w-full h-auto block"></canvas>
+
+        <!-- Controles en pantalla -->
+        <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+            <div class="flex gap-2 pointer-events-auto">
+                <button id="btn-left"
+                    class="px-4 py-2 bg-slate-800/80 hover:bg-slate-900 text-white rounded-xl font-bold text-sm shadow active:scale-95">◀
+                    Izquierda (A)</button>
+                <button id="btn-right"
+                    class="px-4 py-2 bg-slate-800/80 hover:bg-slate-900 text-white rounded-xl font-bold text-sm shadow active:scale-95">Derecha
+                    (D) ▶</button>
+            </div>
+            <div
+                class="bg-white/95 backdrop-blur px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 shadow-sm flex items-center gap-2">
+                <span>Acción: <b id="state-readout" class="text-pink-600">REPOSO</b></span>
+                <span>·</span>
+                <span>Frame: <b id="frame-readout" class="font-mono text-slate-800">0</b></span>
+            </div>
+            <div class="flex gap-2 pointer-events-auto">
+                <button id="btn-punch"
+                    class="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl font-bold text-sm shadow active:scale-95">👊
+                    Golpear (C)</button>
+                <button id="btn-jump"
+                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow active:scale-95">⬆️
+                    Saltar (Espacio)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tira de Inspección de los 12 Frames Detectados por Celdas -->
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Vista previa de los 12 recortes
+                limpios (Aislamiento por celda 2x6)</h2>
+            <div class="flex gap-2 text-xs">
+                <button id="btn-show-action-strip"
+                    class="px-2.5 py-1 rounded bg-pink-100 text-pink-800 font-semibold">Ver Hoja Acción</button>
+                <button id="btn-show-idle-strip"
+                    class="px-2.5 py-1 rounded bg-purple-100 text-purple-800 font-semibold">Ver Hoja Reposo</button>
+            </div>
+        </div>
+        <div id="frames-strip" class="grid grid-cols-6 sm:grid-cols-12 gap-2"></div>
+    </div>
+
+    <script src="./asets/lily_sheets_b64.js"></script>
+    <script>
+        const canvas = document.getElementById('stageCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusBadge = document.getElementById('status-badge');
+        const stateReadout = document.getElementById('state-readout');
+        const frameReadout = document.getElementById('frame-readout');
+        const framesStrip = document.getElementById('frames-strip');
+
+        const sheets = {
+            action: { loaded: false, frames: [], refHeadWidth: 100, avgHeight: 200 },
+            idle: { loaded: false, frames: [], refHeadWidth: 100, avgHeight: 200 }
+        };
+
+        /**
+         * RECORTE POR CUADRÍCULA ESTRICTA DE 2x6 CELDAS CON LÍMITE INTERNO:
+         * 1. Elimina el fondo blanco (#FFFFFF) con suavizado de bordes.
+         * 2. Corta matemáticamente cada una de las 12 celdas de forma independiente.
+         * 3. Busca la caja delimitadora real de Lily DENTRO de esa celda, descartando márgenes
+         *    y evitando que partes de sprites contiguos o marcas diagonales contaminen el frame.
+         * 4. Calcula el centro horizontal usando la cabeza/capucha para evitar tirones.
+         */
+        function processSpriteSheet(img, sheetKey, labelElement, fileName) {
+            const W = img.naturalWidth || img.width;
+            const H = img.naturalHeight || img.height;
+            const off = document.createElement('canvas');
+            off.width = W;
+            off.height = H;
+            const octx = off.getContext('2d');
+            octx.drawImage(img, 0, 0);
+
+            let imgData;
+            try {
+                imgData = octx.getImageData(0, 0, W, H);
+            } catch (err) {
+                const b64 = (typeof window !== 'undefined' && window.LILY_SHEETS_B64) ? window.LILY_SHEETS_B64[sheetKey] : null;
+                if (b64 && img.src !== b64) {
+                    const retryImg = new Image();
+                    retryImg.onload = () => processSpriteSheet(retryImg, sheetKey, labelElement, fileName);
+                    retryImg.src = b64;
+                    return;
+                }
+                console.warn('CORS bloqueó getImageData en file://. Usa el botón "Elegir imagen..." arriba.', err);
+                statusBadge.textContent = '⚠️ Usa los botones "Elegir imagen..." arriba para evitar bloqueo CORS local';
+                return;
+            }
+
+            const data = imgData.data;
+            // 1. Chroma Key: eliminar fondo blanco y suavizar bordes
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i], g = data[i + 1], b = data[i + 2];
+                const minC = Math.min(r, g, b);
+                const maxDiff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+                if (minC > 236 && maxDiff < 20) {
+                    data[i + 3] = 0;
+                } else if (minC > 210 && maxDiff < 26) {
+                    const factor = (236 - minC) / (236 - 210);
+                    data[i + 3] = Math.min(data[i + 3], Math.floor(factor * 255));
+                }
+            }
+            octx.putImageData(imgData, 0, 0);
+
+            // 2. Extracción estricta por cuadrícula 2x6
+            const cols = 6;
+            const rows = 2;
+            const cellW = W / cols;
+            const cellH = H / rows;
+            const frames = [];
+
+            let totalH = 0;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const idx = r * cols + c;
+                    const sx = Math.floor(c * cellW);
+                    const sy = Math.floor(r * cellH);
+                    const sw = Math.floor(cellW);
+                    const sh = Math.floor(cellH);
+
+                    // Extraer exclusivamente los píxeles de esta celda
+                    const cellCanvas = document.createElement('canvas');
+                    cellCanvas.width = sw;
+                    cellCanvas.height = sh;
+                    const cellCtx = cellCanvas.getContext('2d');
+                    cellCtx.drawImage(off, sx, sy, sw, sh, 0, 0, sw, sh);
+
+                    const cellImgData = cellCtx.getImageData(0, 0, sw, sh);
+                    const cd = cellImgData.data;
+
+                    // Encontrar la silueta de Lily únicamente dentro de su celda
+                    let minX = sw, maxX = 0, minY = sh, maxY = 0;
+                    let found = false;
+
+                    for (let y = 0; y < sh; y++) {
+                        for (let x = 0; x < sw; x++) {
+                            if (cd[(y * sw + x) * 4 + 3] > 35) {
+                                if (x < minX) minX = x;
+                                if (x > maxX) maxX = x;
+                                if (y < minY) minY = y;
+                                if (y > maxY) maxY = y;
+                                found = true;
+                            }
+                        }
+                    }
+
+                    if (!found) {
+                        minX = Math.floor(sw * 0.2); maxX = Math.floor(sw * 0.8);
+                        minY = Math.floor(sh * 0.1); maxY = Math.floor(sh * 0.9);
+                    }
+
+                    const pad = 3;
+                    const fMinX = Math.max(0, minX - pad);
+                    const fMaxX = Math.min(sw, maxX + pad);
+                    const fMinY = Math.max(0, minY - pad);
+                    const fMaxY = Math.min(sh, maxY + pad);
+                    const fw = fMaxX - fMinX;
+                    const fh = fMaxY - fMinY;
+
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = fw;
+                    finalCanvas.height = fh;
+                    const finalCtx = finalCanvas.getContext('2d');
+                    finalCtx.drawImage(cellCanvas, fMinX, fMinY, fw, fh, 0, 0, fw, fh);
+
+                    // Eje horizontal de la cabeza (tercio superior)
+                    const fData = finalCtx.getImageData(0, 0, fw, fh).data;
+                    const headYStart = Math.floor(fh * 0.08);
+                    const headYEnd = Math.floor(fh * 0.42);
+                    let headMinX = fw, headMaxX = 0;
+
+                    for (let py = headYStart; py <= headYEnd; py++) {
+                        for (let px = 0; px < fw; px++) {
+                            if (fData[(py * fw + px) * 4 + 3] > 60) {
+                                if (px < headMinX) headMinX = px;
+                                if (px > headMaxX) headMaxX = px;
+                            }
+                        }
+                    }
+
+                    const headCenterX = (headMinX < headMaxX) ? (headMinX + headMaxX) / 2 : fw / 2;
+                    const headWidth = (headMinX < headMaxX) ? (headMaxX - headMinX) : fw * 0.6;
+
+                    totalH += fh;
+
+                    frames.push({
+                        index: idx,
+                        canvas: finalCanvas,
+                        cellW: fw,
+                        cellH: fh,
+                        minX: 0,
+                        maxX: fw,
+                        minY: 0,
+                        maxY: fh,
+                        pivotX: headCenterX,
+                        pivotBottomY: fh,
+                        charW: fw,
+                        charH: fh,
+                        headWidth
+                    });
+                }
+            }
+
+            const avgHeight = totalH / frames.length;
+            const refHeadWidth = frames.reduce((acc, f) => acc + f.headWidth, 0) / frames.length;
+
+            sheets[sheetKey] = { loaded: true, frames, avgHeight, refHeadWidth };
+            if (labelElement) labelElement.textContent = `✅ 12 celdas limpias extraídas: ${fileName}`;
+            updateStatusBadge();
+            renderFramesStrip(sheetKey);
+        }
+
+        function updateStatusBadge() {
+            if (sheets.action.loaded && sheets.idle.loaded) {
+                statusBadge.textContent = '✅ Ambas hojas aisladas por celda sin franjas ni vecinos';
+                statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800';
+            } else if (sheets.action.loaded || sheets.idle.loaded) {
+                statusBadge.textContent = '⚠️ 1 de 2 hojas cargadas (selecciona la otra arriba)';
+                statusBadge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800';
+            }
+        }
+
+        function renderFramesStrip(sheetKey) {
+            const sheet = sheets[sheetKey];
+            if (!sheet || !sheet.loaded) return;
+            framesStrip.innerHTML = '';
+            sheet.frames.forEach((f, idx) => {
+                const card = document.createElement('div');
+                card.className = 'border border-slate-200 rounded-lg p-1.5 flex flex-col items-center bg-slate-50 hover:border-pink-400 transition';
+                const thumb = document.createElement('canvas');
+                thumb.width = 76;
+                thumb.height = 96;
+                const tctx = thumb.getContext('2d');
+                const scale = Math.min(66 / f.cellW, 84 / f.cellH);
+                const dw = f.cellW * scale;
+                const dh = f.cellH * scale;
+                tctx.drawImage(
+                    f.canvas,
+                    38 - f.pivotX * scale,
+                    90 - f.pivotBottomY * scale,
+                    dw,
+                    dh
+                );
+                const lbl = document.createElement('span');
+                lbl.className = 'text-[10px] font-mono font-bold text-slate-600 mt-1';
+                lbl.textContent = `#${idx}`;
+                card.appendChild(thumb);
+                card.appendChild(lbl);
+                framesStrip.appendChild(card);
+            });
+        }
+
+        document.getElementById('btn-show-action-strip').addEventListener('click', () => renderFramesStrip('action'));
+        document.getElementById('btn-show-idle-strip').addEventListener('click', () => renderFramesStrip('idle'));
+
+        // Carga automática desde ./asets/
+        function tryAutoLoad(paths, sheetKey, labelEl) {
+            let idx = 0;
+            const tryNext = () => {
+                if (idx >= paths.length) return;
+                const path = paths[idx++];
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => processSpriteSheet(img, sheetKey, labelEl, path);
+                img.onerror = tryNext;
+                img.src = path;
+            };
+            tryNext();
+        }
+
+        tryAutoLoad([
+            './asets/sprites_lily_animado.png',
+            './asets/sprites_lily_animado.jpg',
+            'sprites_lily_animado.png',
+            'sprites_lily_animado.jpg'
+        ], 'action', document.getElementById('action-file-label'));
+
+        tryAutoLoad([
+            './asets/sprites_lily_reposo.png',
+            './asets/sprites_lily_reposo.jpg',
+            'sprites_lily_reposo.png',
+            'sprites_lily_reposo.jpg'
+        ], 'idle', document.getElementById('idle-file-label'));
+
+        // Carga manual sin restricciones CORS
+        document.getElementById('input-action-sheet').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => processSpriteSheet(img, 'action', document.getElementById('action-file-label'), file.name);
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('input-idle-sheet').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => processSpriteSheet(img, 'idle', document.getElementById('idle-file-label'), file.name);
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Coreografía de reposo con pausas amplias y micro-gestos
+        const IDLE_TIMELINE = [
+            { frame: 0, duration: 2.4, desc: '😌 Quieta (Respirando)' },
+            { frame: 1, duration: 0.08, desc: '😑 Parpadeo' },
+            { frame: 2, duration: 0.09, desc: '😑 Parpadeo' },
+            { frame: 0, duration: 1.8, desc: '😌 Quieta (Respirando)' },
+            { frame: 4, duration: 0.22, desc: '🐱 Mueve la colita' },
+            { frame: 3, duration: 0.18, desc: '😌 Quieta' },
+            { frame: 4, duration: 0.22, desc: '🐱 Mueve la colita' },
+            { frame: 0, duration: 2.5, desc: '😌 Quieta (Respirando)' },
+            { frame: 5, duration: 0.35, desc: '👀 Mirando al frente' },
+            { frame: 6, duration: 1.15, desc: '👀 Mirando hacia atrás' },
+            { frame: 5, duration: 0.30, desc: '👀 Volviendo la mirada' },
+            { frame: 10, duration: 2.2, desc: '😌 Quieta (Respirando)' },
+            { frame: 1, duration: 0.07, desc: '😑 Parpadeo' },
+            { frame: 0, duration: 0.12, desc: '😌 Quieta' },
+            { frame: 2, duration: 0.08, desc: '😑 Parpadeo' },
+            { frame: 8, duration: 2.6, desc: '😌 Quieta (Respirando)' },
+            { frame: 9, duration: 0.95, desc: '👓 Acomodándose las gafas' },
+            { frame: 7, duration: 0.45, desc: '😊 Suspiro feliz' },
+            { frame: 11, duration: 1.8, desc: '😌 Quieta (Respirando)' }
+        ];
+
+        const FLOOR_Y = 345;
+        const keys = { left: false, right: false };
+
+        const lily = {
+            x: 480,
+            y: FLOOR_Y,
+            vx: 0,
+            vy: 0,
+            facing: 1,
+            onGround: true,
+            animTime: 0,
+            idleStepIndex: 0,
+            idleStepTimer: 0,
+            landTimer: 0,
+            punchTimer: 0,
+            jumpStartTimer: 0
+        };
+
+        function resetIdleTimeline() {
+            lily.idleStepIndex = 0;
+            lily.idleStepTimer = 0;
+        }
+
+        function triggerJump() {
+            if (lily.onGround) {
+                lily.jumpStartTimer = 0.08;
+                lily.vy = -11.5;
+                lily.onGround = false;
+                resetIdleTimeline();
+            }
+        }
+
+        function triggerPunch() {
+            lily.punchTimer = 0.28;
+            resetIdleTimeline();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
+            if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
+            if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) {
+                e.preventDefault();
+                triggerJump();
+            }
+            if (['KeyC', 'KeyF', 'KeyV'].includes(e.code)) triggerPunch();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = false;
+            if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = false;
+        });
+
+        const bindHold = (id, onDown, onUp) => {
+            const el = document.getElementById(id);
+            el.addEventListener('pointerdown', (e) => { e.preventDefault(); onDown(); });
+            el.addEventListener('pointerup', (e) => { e.preventDefault(); if (onUp) onUp(); });
+            el.addEventListener('pointerleave', () => { if (onUp) onUp(); });
+        };
+        bindHold('btn-left', () => keys.left = true, () => keys.left = false);
+        bindHold('btn-right', () => keys.right = true, () => keys.right = false);
+        bindHold('btn-jump', triggerJump);
+        bindHold('btn-punch', triggerPunch);
+
+        const modeSelect = document.getElementById('mode-select');
+        const runFpsSlider = document.getElementById('run-fps');
+        const idlePauseSlider = document.getElementById('idle-pause-mult');
+        const scaleSlider = document.getElementById('sprite-scale');
+        const chkBreathing = document.getElementById('chk-breathing');
+        const chkDebug = document.getElementById('chk-debug');
+
+        runFpsSlider.addEventListener('input', () => document.getElementById('run-fps-val').textContent = runFpsSlider.value);
+        idlePauseSlider.addEventListener('input', () => document.getElementById('idle-pause-val').textContent = (idlePauseSlider.value / 100).toFixed(1) + 'x');
+        scaleSlider.addEventListener('input', () => document.getElementById('scale-val').textContent = (scaleSlider.value / 100).toFixed(1) + 'x');
+        modeSelect.addEventListener('change', () => {
+            resetIdleTimeline();
+            if (modeSelect.value === 'natural_idle') renderFramesStrip('idle');
+            else renderFramesStrip('action');
+        });
+
+        let lastTime = performance.now();
+
+        function loop(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+            update(dt);
+            render();
+            requestAnimationFrame(loop);
+        }
+
+        function updateIdleClock(dt) {
+            const pauseMult = parseFloat(idlePauseSlider.value) / 100;
+            const currentStep = IDLE_TIMELINE[lily.idleStepIndex];
+            const effectiveDuration = currentStep.duration > 0.5
+                ? currentStep.duration * pauseMult
+                : currentStep.duration;
+
+            lily.idleStepTimer += dt;
+            if (lily.idleStepTimer >= effectiveDuration) {
+                lily.idleStepTimer = 0;
+                lily.idleStepIndex = (lily.idleStepIndex + 1) % IDLE_TIMELINE.length;
+            }
+        }
+
+        function update(dt) {
+            const mode = modeSelect.value;
+            lily.animTime += dt;
+
+            if (mode !== 'playable') {
+                lily.x = 480;
+                lily.y = FLOOR_Y;
+                lily.vx = 0;
+                lily.vy = 0;
+                lily.onGround = true;
+                if (mode === 'natural_idle') updateIdleClock(dt);
+                return;
+            }
+
+            const speed = 280;
+            if (keys.left) {
+                lily.vx = -speed;
+                lily.facing = -1;
+                resetIdleTimeline();
+            } else if (keys.right) {
+                lily.vx = speed;
+                lily.facing = 1;
+                resetIdleTimeline();
+            } else {
+                lily.vx *= 0.82;
+                if (Math.abs(lily.vx) < 8) lily.vx = 0;
+            }
+
+            lily.x += lily.vx * dt;
+            if (lily.x < 70) lily.x = 70;
+            if (lily.x > canvas.width - 70) lily.x = canvas.width - 70;
+
+            if (!lily.onGround) {
+                lily.vy += 28 * dt;
+                lily.y += lily.vy * 60 * dt;
+                if (lily.y >= FLOOR_Y) {
+                    lily.y = FLOOR_Y;
+                    lily.vy = 0;
+                    lily.onGround = true;
+                    lily.landTimer = 0.10;
+                }
+            }
+
+            if (lily.jumpStartTimer > 0) lily.jumpStartTimer = Math.max(0, lily.jumpStartTimer - dt);
+            if (lily.landTimer > 0) lily.landTimer = Math.max(0, lily.landTimer - dt);
+            if (lily.punchTimer > 0) lily.punchTimer = Math.max(0, lily.punchTimer - dt);
+
+            if (lily.onGround && Math.abs(lily.vx) <= 15 && lily.punchTimer <= 0 && lily.landTimer <= 0) {
+                updateIdleClock(dt);
+            }
+        }
+
+        function getActiveSheetAndFrame() {
+            const mode = modeSelect.value;
+            const runFps = parseFloat(runFpsSlider.value);
+
+            if (mode === 'natural_idle') {
+                const step = IDLE_TIMELINE[lily.idleStepIndex];
+                return { sheetKey: 'idle', frameIndex: step.frame, label: step.desc, isIdle: true };
+            }
+            if (mode === 'loop_run') {
+                return { sheetKey: 'action', frameIndex: Math.floor(lily.animTime * runFps) % 6, label: '🏃‍♀️ CORRER (Frames 0-5)', isIdle: false };
+            }
+            if (mode === 'loop_jump') {
+                const jumpSeq = [7, 8, 9, 9, 10, 6];
+                return { sheetKey: 'action', frameIndex: jumpSeq[Math.floor(lily.animTime * 4.5) % jumpSeq.length], label: '⬆️ SALTO (Frames 7-10)', isIdle: false };
+            }
+            if (mode === 'loop_punch') {
+                const punchSeq = [6, 11, 11, 6];
+                return { sheetKey: 'action', frameIndex: punchSeq[Math.floor(lily.animTime * 4.5) % punchSeq.length], label: '👊 GOLPE (Frame 11)', isIdle: false };
+            }
+
+            // Modo Jugable
+            if (lily.punchTimer > 0) return { sheetKey: 'action', frameIndex: 11, label: '👊 GOLPEANDO', isIdle: false };
+            if (!lily.onGround) {
+                if (lily.jumpStartTimer > 0) return { sheetKey: 'action', frameIndex: 7, label: '⬆️ IMPULSO SALTO', isIdle: false };
+                if (lily.vy < -2.0) return { sheetKey: 'action', frameIndex: 8, label: '⬆️ SUBIENDO', isIdle: false };
+                if (lily.vy >= -2.0 && lily.vy <= 3.5) return { sheetKey: 'action', frameIndex: 9, label: '✨ CIMA EN EL AIRE', isIdle: false };
+                return { sheetKey: 'action', frameIndex: 10, label: '⬇️ CAYENDO', isIdle: false };
+            }
+            if (lily.landTimer > 0) return { sheetKey: 'action', frameIndex: 7, label: '👟 ATERRIZAJE', isIdle: false };
+            if (Math.abs(lily.vx) > 15) {
+                return { sheetKey: 'action', frameIndex: Math.floor(lily.animTime * runFps) % 6, label: '🏃‍♀️ CORRIENDO', isIdle: false };
+            }
+
+            if (sheets.idle.loaded) {
+                const step = IDLE_TIMELINE[lily.idleStepIndex];
+                return { sheetKey: 'idle', frameIndex: step.frame, label: step.desc, isIdle: true };
+            }
+            return { sheetKey: 'action', frameIndex: 6, label: '😌 REPOSO (Base)', isIdle: true };
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Línea de suelo
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, FLOOR_Y);
+            ctx.lineTo(canvas.width, FLOOR_Y);
+            ctx.stroke();
+
+            // Sombra proyectada en el suelo
+            const heightFromFloor = Math.max(0, FLOOR_Y - lily.y);
+            const shadowScale = Math.max(0.35, 1 - heightFromFloor / 260);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
+            ctx.beginPath();
+            ctx.ellipse(lily.x, FLOOR_Y + 2, 34 * shadowScale, 8 * shadowScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            const { sheetKey, frameIndex, label, isIdle } = getActiveSheetAndFrame();
+            stateReadout.textContent = label;
+            frameReadout.textContent = `${sheetKey.toUpperCase()} #${frameIndex}`;
+
+            const activeSheet = sheets[sheetKey].loaded ? sheets[sheetKey] : (sheets.action.loaded ? sheets.action : null);
+
+            if (!activeSheet || !activeSheet.loaded) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = 'bold 16px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Selecciona arriba las 2 hojas de sprites (Acción y Reposo) para probar el nuevo recorte por celdas ✨', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.font = '13px system-ui, sans-serif';
+                ctx.fillText('Cada celda 2x6 queda 100% aislada evitando vecinos o franjas estiradas', canvas.width / 2, canvas.height / 2 + 16);
+                return;
+            }
+
+            const frame = activeSheet.frames[frameIndex] || activeSheet.frames[0];
+            const userScale = parseFloat(scaleSlider.value) / 100;
+
+            const refHeight = sheetKey === 'action' && activeSheet.frames[6]
+                ? activeSheet.frames[6].charH
+                : activeSheet.avgHeight;
+            const baseScale = (142 * userScale) / refHeight;
+
+            let breathScaleX = 1.0;
+            let breathScaleY = 1.0;
+            if (isIdle && chkBreathing.checked) {
+                const breathWave = Math.sin(lily.animTime * 2.4);
+                breathScaleY = 1.0 + breathWave * 0.014;
+                breathScaleX = 1.0 - breathWave * 0.006;
+            }
+
+            ctx.save();
+            ctx.translate(lily.x, lily.y);
+            ctx.scale(lily.facing * breathScaleX, breathScaleY);
+
+            const destW = frame.cellW * baseScale;
+            const destH = frame.cellH * baseScale;
+
+            const offsetX = -frame.pivotX * baseScale;
+            const offsetY = -frame.pivotBottomY * baseScale;
+
+            ctx.drawImage(frame.canvas, offsetX, offsetY, destW, destH);
+
+            if (chkDebug.checked) {
+                ctx.strokeStyle = '#ec4899';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(offsetX, offsetY, destW, destH);
+                ctx.strokeStyle = '#3b82f6';
+                ctx.beginPath();
+                ctx.moveTo(0, -destH);
+                ctx.lineTo(0, 0);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            if (chkDebug.checked) {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(lily.x, lily.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+
+</html>

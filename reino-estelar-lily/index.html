@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <script>
+        window.errors = [];
+        window.addEventListener('error', (e) => {
+            window.errors.push(e.message + ' at ' + e.filename + ':' + e.lineno);
+            document.title = 'ERR: ' + e.message;
+            console.error('RUNTIME ERROR:', e.message, e.filename, e.lineno);
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            window.errors.push('Promise: ' + (e.reason?.message || e.reason));
+            document.title = 'REJ: ' + (e.reason?.message || e.reason);
+            console.error('PROMISE REJECTION:', e.reason);
+        });
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>El Reino Estelar de Lily ✨👧🐱</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+    <div id="rotate-overlay">
+        <div class="phone">📱</div>
+        <div>Gira tu dispositivo en horizontal 🌙</div>
+        <div style="font-size:14px;color:#ffc2e2;font-weight:500">El Reino Estelar de Lily se juega en formato
+            horizontal</div>
+    </div>
+
+    <div id="game-wrapper">
+        <!-- Barra Superior: Botón de Menú y Pausa en la esquina superior izquierda (pantalla superior libre) -->
+        <div id="mini-hud"
+            class="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-start justify-between pointer-events-none select-none">
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <button id="btn-menu" type="button"
+                    class="mini-pill mini-btn flex items-center gap-1.5 hover:bg-pink-500/35 active:scale-95 transition"
+                    title="Abrir Menú de Opciones (M)">
+                    <span class="text-base sm:text-lg">☰</span>
+                    <span class="text-xs sm:text-sm font-bold tracking-wide">Menú</span>
+                </button>
+                <button id="btn-pause" type="button"
+                    class="mini-pill mini-btn flex items-center gap-1 hover:bg-pink-500/35 active:scale-95 transition"
+                    title="Pausar juego (P)">
+                    <span>⏸️</span>
+                    <span class="text-xs font-bold tracking-wide hidden sm:inline">Pausa</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DIFERENTE: MENÚ DE CONFIGURACIÓN Y OPCIONES (Desplegable) -->
+        <div id="menu-overlay"
+            class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#0e0724]/90 backdrop-blur-md p-3 sm:p-5">
+            <div
+                class="max-w-xl w-full max-h-[92vh] overflow-y-auto bg-[#1b0e42]/95 border-4 border-pink-300/90 rounded-3xl p-5 sm:p-6 text-center shadow-[0_0_60px_rgba(255,133,192,0.45)] flex flex-col gap-4">
+
+                <!-- Encabezado del Menú -->
+                <div class="border-b border-pink-300/30 pb-2">
+                    <h3
+                        class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-200 via-yellow-200 to-purple-200">
+                        📋 Menú de Lily
+                    </h3>
+                    <p class="text-xs text-purple-200 mt-0.5">⏸️ Juego en pausa · El tiempo está detenido</p>
+                </div>
+
+                <div id="hud-bar" class="flex flex-col gap-3.5 text-left">
+                    <!-- Sección 1: Música y Sonido -->
+                    <div class="bg-purple-950/70 border border-pink-300/35 rounded-2xl p-3.5 flex flex-col gap-2.5">
+                        <div class="text-xs font-bold text-pink-200 flex items-center gap-1.5">
+                            <span>🎵</span>
+                            <span>Música y Efectos de Sonido</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="btn-music" type="button"
+                                class="kawaii-pill px-3 py-1.5 text-xs font-semibold text-pink-100 hover:bg-pink-500/30 active:scale-95 transition flex items-center gap-1.5"
+                                title="Activar/Silenciar Música">
+                                <span id="music-icon">🎵</span>
+                                <span>Música</span>
+                            </button>
+
+                            <button id="btn-melody" type="button"
+                                class="kawaii-pill px-3 py-1.5 text-xs font-semibold text-yellow-100 hover:bg-purple-500/40 active:scale-95 transition flex items-center gap-1.5"
+                                title="Cambiar Melodía">
+                                <span>🎹</span>
+                                <span id="melody-name" class="inline text-xs">1. Nana Estelar</span>
+                            </button>
+
+                            <button id="btn-sfx" type="button"
+                                class="kawaii-pill px-3 py-1.5 text-xs font-semibold text-pink-100 hover:bg-pink-500/30 active:scale-95 transition flex items-center gap-1.5"
+                                title="Efectos de Sonido (SFX)">
+                                <span>🔔</span>
+                                <span>Efectos SFX</span>
+                            </button>
+
+                            <div class="kawaii-pill px-3 py-1.5 flex items-center gap-2" title="Volumen General">
+                                <span class="text-xs">🔉 Vol:</span>
+                                <input id="volume-slider" type="range" min="0" max="100" value="55"
+                                    class="kawaii-slider">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: Estado y Progreso de la Partida -->
+                    <div class="bg-purple-950/70 border border-pink-300/35 rounded-2xl p-3.5 flex flex-col gap-2.5">
+                        <div class="text-xs font-bold text-pink-200 flex items-center gap-1.5">
+                            <span>⭐</span>
+                            <span>Progreso de Lily en la Misión</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20">
+                                <div class="text-pink-300 text-[11px]">Energía</div>
+                                <div id="hud-hearts" class="text-sm font-bold mt-0.5">💖💖💖</div>
+                                <span id="hud-lives" class="text-[11px] text-red-300">❤️×3</span>
+                            </div>
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20">
+                                <div class="text-yellow-300 text-[11px]">Estrellitas</div>
+                                <div class="text-sm font-bold text-yellow-200 mt-0.5">🍬 <span id="hud-stars">0</span>
+                                </div>
+                            </div>
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20">
+                                <div class="text-cyan-300 text-[11px]">Tiempo</div>
+                                <div id="hud-timer" class="text-sm font-bold text-white mt-0.5">130s</div>
+                                <div id="hud-timer-pill" class="hidden"></div>
+                            </div>
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20" id="hud-deaths-pill">
+                                <div class="text-pink-300 text-[11px]">Muertes</div>
+                                <div class="text-sm font-bold text-pink-200 mt-0.5">💀 <span id="hud-deaths">0</span>
+                                </div>
+                                <span id="hud-checkpoint" class="hidden text-[10px] text-yellow-300">🚩
+                                    Checkpoint</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs px-1 text-purple-200">
+                            <div>Mundo: <b id="hud-level" class="text-yellow-300">1-1</b></div>
+                            <div>Poder: <b id="hud-power-name" class="text-pink-300">Doble Salto</b></div>
+                            <div id="hud-power-badge" class="hidden"></div>
+                            <div>Puntaje: <b id="hud-score" class="text-white">00000</b></div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 3: Acciones Rápidas -->
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button id="btn-fullscreen" type="button"
+                            class="kawaii-pill px-3.5 py-1.5 text-xs font-bold text-pink-100 hover:bg-pink-500/30 transition">
+                            ⛶ Pantalla Completa
+                        </button>
+                        <button id="btn-help" type="button"
+                            class="kawaii-pill px-3.5 py-1.5 text-xs font-bold text-pink-100 hover:bg-pink-500/30 transition">
+                            ❔ Guía de Controles
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botón de Cerrar Menú -->
+                <div class="pt-1">
+                    <button id="btn-close-menu" type="button"
+                        class="kawaii-btn px-8 py-3 rounded-full font-bold text-base w-full sm:w-auto shadow-lg">
+                        ✖ Cerrar Menú y Seguir Jugando
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAUSA -->
+        <div id="pause-overlay"
+            class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#12082e]/70 backdrop-blur-sm p-4">
+            <div
+                class="max-w-xs w-full bg-[#1e114a]/95 border-4 border-pink-300 rounded-3xl p-6 text-center shadow-2xl">
+                <div class="text-5xl mb-2">⏸️</div>
+                <h3 class="text-2xl font-bold text-pink-200 mb-1">Juego en pausa</h3>
+                <p class="text-xs text-purple-200 mb-4">El tiempo está detenido. Presiona P para continuar.</p>
+                <button id="btn-resume" type="button" class="kawaii-btn px-6 py-2.5 rounded-full font-bold text-base">▶
+                    Continuar</button>
+            </div>
+        </div>
+
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas" tabindex="0"></canvas>
+
+        <!-- Toast / Floating Kawaii Notification Banner -->
+        <div id="toast-banner" class="
+            absolute top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none
+            transition-all duration-300 opacity-0 transform -translate-y-4
+            kawaii-pill px-5 py-1.5 text-center text-xs sm:text-sm font-bold text-pink-100 shadow-lg whitespace-nowrap
+        ">
+            ✨ ¡Bienvenida al Reino Estelar de Lily! ✨
+        </div>
+
+        <!-- START SCREEN OVERLAY (NUEVA INTERFAZ DE PORTADA CELESTIAL) -->
+        <div id="title-overlay"
+            class="absolute inset-0 z-30 flex flex-col items-center justify-between overflow-hidden select-none p-5 sm:p-8">
+            <!-- Lluvia sutil de partículas estelares superpuestas -->
+            <canvas id="titleParticlesCanvas" width="960" height="540"
+                class="absolute inset-0 w-full h-full pointer-events-none z-[1]"></canvas>
+
+            <!-- Marco Interior Fino Ornamental (inset: 14px) con adornos en las esquinas -->
+            <div class="title-ornamental-frame">
+                <span class="title-frame-corner tl"></span>
+                <span class="title-frame-corner tr"></span>
+                <span class="title-frame-corner bl"></span>
+                <span class="title-frame-corner br"></span>
+                <!-- Rombitos ornamentales de esquina y centros -->
+                <span
+                    class="absolute -top-[6px] -left-[5px] text-[10px] text-[#ffe5b4]/85 drop-shadow-[0_0_6px_rgba(255,229,180,0.8)]">◇</span>
+                <span
+                    class="absolute -top-[6px] -right-[5px] text-[10px] text-[#ffe5b4]/85 drop-shadow-[0_0_6px_rgba(255,229,180,0.8)]">◇</span>
+                <span
+                    class="absolute -bottom-[6px] -left-[5px] text-[10px] text-[#ffe5b4]/85 drop-shadow-[0_0_6px_rgba(255,229,180,0.8)]">◇</span>
+                <span
+                    class="absolute -bottom-[6px] -right-[5px] text-[10px] text-[#ffe5b4]/85 drop-shadow-[0_0_6px_rgba(255,229,180,0.8)]">◇</span>
+                <span
+                    class="absolute -top-[6px] left-1/2 -translate-x-1/2 text-[9px] text-[#ffe5b4]/60 tracking-[0.4em]">✦
+                    ◇ ✦</span>
+                <span
+                    class="absolute -bottom-[6px] left-1/2 -translate-x-1/2 text-[9px] text-[#ffe5b4]/60 tracking-[0.4em]">✦
+                    ◇ ✦</span>
+            </div>
+
+            <!-- Zona Superior Central: Logo Principal ("EL REINO ESTELAR DE LILY") -->
+            <div
+                class="relative z-10 flex flex-col items-center justify-center mt-1 sm:mt-2 w-full pointer-events-none">
+                <div class="relative flex flex-col items-center justify-center animate-float">
+                    <!-- Canvas con Logo extraído mediante Chroma Key de ./asets/ui_start_assets -->
+                    <canvas id="title-logo-canvas" width="632" height="282"
+                        class="w-[310px] sm:w-[460px] md:w-[540px] max-w-[86vw] h-auto drop-shadow-[0_8px_24px_rgba(18,6,42,0.8)]"></canvas>
+
+                    <!-- Fallback tipográfico Cinzel / Serif con filigranas vectoriales mientras carga el canvas -->
+                    <div id="title-logo-fallback" class="flex flex-col items-center text-center py-2 px-4">
+                        <svg class="w-56 sm:w-72 h-7 text-[#ffe5b4]/85 drop-shadow-[0_0_10px_rgba(255,229,180,0.6)]"
+                            viewBox="0 0 300 32" fill="none">
+                            <path d="M10 26 H115 M185 26 H290" stroke="currentColor" stroke-width="1.3"
+                                stroke-linecap="round" />
+                            <path d="M120 26 C130 10, 142 8, 150 4 C158 8, 170 10, 180 26" stroke="currentColor"
+                                stroke-width="1.5" fill="none" />
+                            <circle cx="150" cy="16" r="6" stroke="#ffc2e2" stroke-width="1.4"
+                                fill="rgba(145,95,220,0.45)" />
+                            <ellipse cx="150" cy="16" rx="11" ry="3.2" transform="rotate(-18 150 16)" stroke="#ffe5b4"
+                                stroke-width="1.1" fill="none" />
+                        </svg>
+                        <h1 style="font-family: 'Cinzel', Georgia, serif;"
+                            class="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-[0.08em] text-[#fff6e8] drop-shadow-[0_4px_14px_rgba(32,12,68,0.95)]">
+                            EL REINO ESTELAR
+                        </h1>
+                        <div class="flex items-center gap-3 mt-0.5">
+                            <span
+                                class="w-16 sm:w-24 h-[1px] bg-gradient-to-r from-transparent via-[#ffe5b4] to-[#ffc2e2]"></span>
+                            <span style="font-family: 'Cinzel', Georgia, serif;"
+                                class="text-xs sm:text-base font-bold tracking-[0.25em] text-[#ffe5b4]">DE LILY</span>
+                            <span
+                                class="w-16 sm:w-24 h-[1px] bg-gradient-to-l from-transparent via-[#ffe5b4] to-[#ffc2e2]"></span>
+                        </div>
+                        <svg class="w-48 sm:w-64 h-6 text-[#ffc2e2]/75 mt-0.5" viewBox="0 0 260 24" fill="none">
+                            <path d="M35 4 C85 4, 115 18, 130 20 C145 18, 175 4, 225 4" stroke="currentColor"
+                                stroke-width="1.3" fill="none" />
+                            <polygon points="130,14 134,19 130,24 126,19" fill="#ffe5b4" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zona Central / Inferior: Subtítulo + Columna Vertical de 3 Botones Cristalinos -->
+            <div class="relative z-10 flex flex-col items-center justify-center w-full my-auto gap-3 sm:gap-4">
+                <!-- Subtítulo con parpadeo suave -->
+                <div id="title-press-any"
+                    class="title-press-prompt text-center text-[11px] sm:text-sm md:text-[15px] font-semibold px-4 cursor-pointer">
+                    PRESIONA CUALQUIER BOTÓN PARA EMPEZAR <span class="opacity-60 mx-1">/</span> PRESS ANY BUTTON TO
+                    PLAY
+                </div>
+
+                <!-- Columna Vertical de 3 Botones Rectangulares Cristalinos Celestiales -->
+                <div id="title-menu-buttons" class="flex flex-col items-center gap-3 sm:gap-3.5 w-full">
+                    <!-- Botón 1: COMENZAR A JUGAR (Activo por defecto) -->
+                    <button id="btn-start-game" type="button" data-menu-idx="0"
+                        class="celestial-menu-btn celestial-btn-active">
+                        <span class="celestial-corner-diamond tl">◇</span>
+                        <span class="celestial-corner-diamond tr">◇</span>
+                        <span class="celestial-corner-diamond bl">◇</span>
+                        <span class="celestial-corner-diamond br">◇</span>
+                        <svg class="celestial-btn-crest-top" viewBox="0 0 84 7" fill="none">
+                            <path d="M0 6 H35 L42 1 L49 6 H84" stroke="currentColor" stroke-width="1.2"
+                                opacity="0.85" />
+                        </svg>
+                        <svg class="celestial-btn-crest-bottom" viewBox="0 0 84 7" fill="none">
+                            <path d="M0 6 H35 L42 1 L49 6 H84" stroke="currentColor" stroke-width="1.2"
+                                opacity="0.85" />
+                        </svg>
+                        <span class="celestial-btn-arrow">&gt;</span>
+                        <span class="tracking-[0.15em]">COMENZAR A JUGAR</span>
+                        <span class="celestial-btn-arrow">&lt;</span>
+                    </button>
+
+                    <!-- Botón 2: OPCIONES (Abre subpanel con selector de nivel y melodía) -->
+                    <button id="btn-title-options" type="button" data-menu-idx="1"
+                        class="celestial-menu-btn celestial-btn-inactive">
+                        <span class="celestial-corner-diamond tl">◇</span>
+                        <span class="celestial-corner-diamond tr">◇</span>
+                        <span class="celestial-corner-diamond bl">◇</span>
+                        <span class="celestial-corner-diamond br">◇</span>
+                        <svg class="celestial-btn-crest-top" viewBox="0 0 84 7" fill="none">
+                            <path d="M0 6 H35 L42 1 L49 6 H84" stroke="currentColor" stroke-width="1.2"
+                                opacity="0.65" />
+                        </svg>
+                        <svg class="celestial-btn-crest-bottom" viewBox="0 0 84 7" fill="none">
+                            <path d="M0 6 H35 L42 1 L49 6 H84" stroke="currentColor" stroke-width="1.2"
+                                opacity="0.65" />
+                        </svg>
+                        <span class="celestial-btn-arrow">&gt;</span>
+                        <span class="tracking-[0.15em]">OPCIONES</span>
+                        <span class="celestial-btn-arrow">&lt;</span>
+                    </button>
+
+                    <!-- Botón 3: CRÉDITOS / GUÍA (Conectado a #help-overlay) -->
+                    <button id="btn-title-credits" type="button" data-menu-idx="2"
+                        class="celestial-menu-btn celestial-btn-inactive">
+                        <span class="celestial-corner-diamond tl">◇</span>
+                        <span class="celestial-corner-diamond tr">◇</span>
+                        <span class="celestial-corner-diamond bl">◇</span>
+                        <span class="celestial-corner-diamond br">◇</span>
+                        <svg class="celestial-btn-crest-top" viewBox="0 0 84 7" fill="none">
+                            <path d="M0 6 H35 L42 1 L49 6 H84" stroke="currentColor" stroke-width="1.2"
+                                opacity="0.65" />
+                        </svg>
+                        <svg class="celestial-btn-crest-bottom" viewBox="0 0 84 7" fill="none">
+                            <path d="M0 6 H35 L42 1 L49 6 H84" stroke="currentColor" stroke-width="1.2"
+                                opacity="0.65" />
+                        </svg>
+                        <span class="celestial-btn-arrow">&gt;</span>
+                        <span class="tracking-[0.15em]">CRÉDITOS / GUÍA</span>
+                        <span class="celestial-btn-arrow">&lt;</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUBPANEL DE OPCIONES DE PORTADA (#title-options-panel): integra #start-level-select, #btn-preview-melody y #lilyPreviewCanvas -->
+            <div id="title-options-panel"
+                class="hidden absolute inset-0 z-20 flex items-center justify-center bg-[#0d0622]/80 backdrop-blur-md p-4">
+                <div
+                    class="relative max-w-lg w-full bg-[#1b1040]/95 border border-[#ffe5b4]/60 rounded-2xl p-5 sm:p-6 text-center shadow-[0_0_50px_rgba(255,175,155,0.35)]">
+                    <span class="celestial-corner-diamond tl text-[#ffe5b4]">◇</span>
+                    <span class="celestial-corner-diamond tr text-[#ffe5b4]">◇</span>
+                    <span class="celestial-corner-diamond bl text-[#ffe5b4]">◇</span>
+                    <span class="celestial-corner-diamond br text-[#ffe5b4]">◇</span>
+
+                    <div class="flex items-center justify-center gap-3 mb-3">
+                        <div
+                            class="relative w-16 h-16 rounded-full bg-gradient-to-b from-[#351d78] to-[#160a3a] border-2 border-[#ffe5b4]/80 shadow-[0_0_18px_rgba(255,133,192,0.5)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <canvas id="lilyPreviewCanvas" width="128" height="128" class="w-16 h-16"></canvas>
+                        </div>
+                        <div class="text-left">
+                            <h3 style="font-family: 'Cinzel', Georgia, serif;"
+                                class="text-base sm:text-lg font-bold text-[#ffe5b4] tracking-wider">
+                                ✦ OPCIONES DE AVENTURA ✦
+                            </h3>
+                            <p class="text-[11px] text-pink-200/90">Selecciona el mundo inicial y la melodía cósmica de
+                                Lily</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-3 my-4 text-left">
+                        <div class="bg-[#12092e]/90 border border-pink-300/35 rounded-xl p-3 flex flex-col gap-1.5">
+                            <label for="start-level-select"
+                                class="text-xs text-[#ffe5b4] font-semibold flex items-center gap-1.5">
+                                <span>🎬</span>
+                                <span>Mundo o Escena Inicial:</span>
+                            </label>
+                            <select id="start-level-select"
+                                class="w-full bg-[#1e114a] text-yellow-100 text-xs sm:text-sm font-bold rounded-lg px-3 py-2 border border-[#ffe5b4]/45 outline-none cursor-pointer">
+                                <option value="intro">💻 Habitación de Lily (Intro + Aventura Completa)</option>
+                                <option value="0">🌙 Mundo 1-1: Noche Estelar (Polvo de Hadas)</option>
+                                <option value="1">🌅 Mundo 1-2: Atardecer Cósmico (Lluvia + Fuego)</option>
+                                <option value="2">☀️ Mundo 1-3: Día de Cristal (¡Gatito Protector! 🐱)</option>
+                                <option value="3">🐙 Mundo 1-4: Abismo Tenebroso (¡BOSS FINAL! 👑)</option>
+                                <option value="4">🏙️ Mundo 2-1: Tierra Devastada (¡Hombres Enmascarados! 🎭)</option>
+                                <option value="5">🌇 Mundo 2-2: Atardecer Carmesí (¡Hombres Zombie y Escaleras! 🧟🔥)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div
+                            class="bg-[#12092e]/90 border border-pink-300/35 rounded-xl p-3 flex items-center justify-between gap-2">
+                            <span class="text-xs text-pink-200 font-semibold">🎹 Melodía de Fondo:</span>
+                            <button id="btn-preview-melody" type="button"
+                                class="kawaii-btn-secondary rounded-xl px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-[#ffe5b4]/50">
+                                <span>🎶</span>
+                                <span id="preview-melody-text">Música: Nana Estelar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-3 mt-4">
+                        <button id="btn-close-title-options" type="button"
+                            class="celestial-menu-btn celestial-btn-inactive !w-auto px-6 !h-10 !text-xs">
+                            <span>✖ LISTO</span>
+                        </button>
+                        <button id="btn-play-from-options" type="button"
+                            class="celestial-menu-btn celestial-btn-active !w-auto px-6 !h-10 !text-xs">
+                            <span>&gt; ¡JUGAR AHORA! &lt;</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles de Esquinas (Inferior Izquierda: Micro-iconos decorativos / Inferior Derecha: Indicador / A) -->
+            <div
+                class="relative z-10 w-full flex items-end justify-between px-2 sm:px-3 pb-0.5 text-[#ffe5b4]/85 text-xs pointer-events-none">
+                <!-- Esquina Inferior Izquierda: Micro-iconos decorativos -->
+                <div class="flex items-center gap-2.5 pointer-events-auto">
+                    <div
+                        class="flex items-center gap-1.5 bg-[#160b36]/65 border border-[#ffe5b4]/30 rounded-full px-2.5 py-1 backdrop-blur-sm shadow-sm">
+                        <span class="text-[11px] text-[#ffe5b4]" title="Constelación Estelar">✦</span>
+                        <span class="text-[11px] text-pink-200" title="Reino de la Luna">☽</span>
+                        <span class="text-[11px] text-purple-200" title="Cristal Estelar">❖</span>
+                        <span id="title-selected-mode-badge"
+                            class="text-[10px] sm:text-[11px] font-medium text-pink-100/90 pl-1 border-l border-[#ffe5b4]/25">
+                            💻 Intro + Aventura
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Esquina Inferior Derecha: Indicador / A -->
+                <div class="flex items-center gap-2 pointer-events-auto">
+                    <div style="font-family: 'Cinzel', Georgia, serif;"
+                        class="flex items-center gap-2 bg-[#160b36]/65 border border-[#ffe5b4]/35 rounded-full px-3 py-1 backdrop-blur-sm text-[11px] sm:text-xs tracking-[0.14em] text-[#ffe5b4]">
+                        <span class="opacity-80 hidden sm:inline">⬆️⬇️ NAVEGAR</span>
+                        <span class="opacity-40 hidden sm:inline">·</span>
+                        <span class="font-bold text-[#fff6e5] drop-shadow-[0_0_6px_rgba(255,229,180,0.8)]">/ A</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINAL GAME VICTORY MODAL (Only shown after beating Level 3) -->
+        <div id="victory-overlay"
+            class="hidden absolute inset-0 z-30 flex items-center justify-center bg-[#12082e]/88 backdrop-blur-sm p-4">
+            <div
+                class="max-w-md w-full bg-[#221252]/95 border-4 border-yellow-200/80 rounded-3xl p-6 sm:p-7 text-center shadow-[0_0_55px_rgba(255,229,143,0.5)]">
+                <div id="modal-emoji" class="text-5xl mb-2 animate-float">👑🚀👧🏻🎧🪐</div>
+                <h2 id="modal-title" class="text-2xl sm:text-3xl font-extrabold text-yellow-200 mb-2">
+                    ¡Victoria Galáctica y Salvación de la Tierra!
+                </h2>
+                <p id="modal-desc" class="text-pink-100 text-xs sm:text-sm mb-4">
+                    ¡Lily cruzó la galaxia, derrotó al Rey Marciano y sobrevivió al Atardecer Carmesí, purificando las
+                    almas y restaurando la esperanza para reconstruir la Tierra!
+                </p>
+
+                <div
+                    class="bg-purple-950/75 border border-pink-300/40 rounded-2xl p-3.5 mb-5 grid grid-cols-3 gap-2 text-xs sm:text-sm">
+                    <div>
+                        <div class="text-pink-200 text-[11px]">Estrellitas</div>
+                        <div id="modal-stars" class="text-lg font-bold text-yellow-300">🍬 0</div>
+                    </div>
+                    <div class="border-x border-pink-300/30">
+                        <div class="text-pink-200 text-[11px]">Puntaje</div>
+                        <div id="modal-score" class="text-lg font-bold text-white">0</div>
+                    </div>
+                    <div>
+                        <div class="text-pink-200 text-[11px]">Muertes</div>
+                        <div id="modal-deaths" class="text-lg font-bold text-pink-300">💀 0</div>
+                    </div>
+                </div>
+
+                <button id="btn-next-action" class="kawaii-btn px-8 py-3.5 rounded-full text-lg font-bold w-full">
+                    🌟 Jugar de Nuevo (Con Intro) 🌟
+                </button>
+            </div>
+        </div>
+
+        <!-- Help & Credits Modal -->
+        <div id="help-overlay"
+            class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#12082e]/85 backdrop-blur-md p-4">
+            <div
+                class="max-w-md w-full bg-[#1e114a]/95 border-2 border-[#ffe5b4]/75 rounded-3xl p-6 text-center shadow-[0_0_50px_rgba(255,175,155,0.4)]">
+                <h3 style="font-family: 'Cinzel', Georgia, serif;"
+                    class="text-xl sm:text-2xl font-bold text-[#ffe5b4] mb-3 tracking-wide">
+                    ✦ Guía y Créditos del Reino Estelar ✦
+                </h3>
+                <ul
+                    class="text-left text-xs sm:text-sm space-y-2 text-purple-100 mb-4 bg-purple-950/60 p-4 rounded-2xl border border-pink-300/30 max-h-[54vh] overflow-y-auto">
+                    <li>🎮 <b>Controles:</b> Usa <b>⬅️➡️ / A / D</b> para caminar, <b>⬆️ / W / Espacio</b> para salto y
+                        doble salto, <b>👊 (C / F / V)</b> para golpear y <b>🫧 (Z / X / Shift)</b> para burbujas de
+                        corazón.</li>
+                    <li>🧰 <b>Cofres Sorpresa:</b> Acércate o salta encima para abrirlos y descubrir poderes y dulces.
+                        ¡50 estrellitas = 1 vida extra!</li>
+                    <li>🐱 <b>Gatito Guardián (Nivel 3):</b> En el Mundo 1-3 encontrarás a tu gatito compañero Mishi que
+                        bloquea proyectiles y dispara estrellitas.</li>
+                    <li>🚀 <b>Cohete Propulsor (5s de Vuelo):</b> Encuentra el Cohete dentro de los cofres para volar
+                        libremente manteniendo <b>Saltar</b>.</li>
+                    <li>🐙👑 <b>Mundo 1-4 (Rey Kraken Marciano):</b> Derrótalo saltándole encima, con el poder del
+                        Puñito 👊 o con Burbujas de Corazón 🫧.</li>
+                    <li>🏚️🌇 <b>Mundos 2-1 y 2-2:</b> Escala ruinas, rescata a los humanos enmascarados 🎭 y sobrevive
+                        al Atardecer Carmesí.</li>
+                    <li class="pt-2 border-t border-pink-300/25 text-pink-200/90">✨ <b>Créditos:</b> <i>El Reino Estelar
+                            de Lily</i> — Arte conceptual, hojas de sprites animados de 12 cuadros, música sintetizada
+                        Web Audio API y motor 2D HTML5 Canvas.</li>
+                </ul>
+                <button id="btn-close-help" class="celestial-menu-btn celestial-btn-active !w-auto mx-auto px-8 !h-11">
+                    <span>&gt; VOLVER &lt;</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controles Inferiores + Guía Tutorial + Información Esencial en la PARTE DERECHA INFERIOR -->
+        <div id="touch-controls"
+            class="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 z-20 flex items-end justify-between pointer-events-none select-none gap-2">
+            <!-- Lado Izquierdo Inferior: Movimiento -->
+            <div class="flex items-center gap-2.5 pointer-events-auto">
+                <button id="btn-left" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 text-xl" aria-label="Mover Izquierda">
+                    ◀
+                </button>
+                <button id="btn-right" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 text-xl" aria-label="Mover Derecha">
+                    ▶
+                </button>
+            </div>
+
+            <!-- Centro Inferior: Barra Dinámica de Historia y Tutorial -->
+            <div id="story-guide-bar"
+                class="pointer-events-none max-w-[34%] sm:max-w-sm md:max-w-md w-full flex items-center justify-center transition-all duration-300 mb-0.5">
+                <div
+                    class="kawaii-pill px-3 py-1 sm:py-1.5 flex items-center justify-center gap-1.5 text-center text-[10px] sm:text-xs md:text-sm font-semibold text-pink-100 shadow-[0_4px_16px_rgba(255,133,192,0.3)] border border-pink-300/60 bg-[#160a36]/90 backdrop-blur-md">
+                    <span id="story-guide-icon" class="text-xs sm:text-sm flex-shrink-0 animate-bounce">✨</span>
+                    <span id="story-guide-text" class="tracking-wide text-yellow-100 drop-shadow line-clamp-2">¡Lily ha
+                        aterrizado en su nave! Avanza a la derecha y recolecta estrellitas.</span>
+                </div>
+            </div>
+
+            <!-- PARTE DERECHA INFERIOR: INFORMACIÓN ESENCIAL DEL JUEGO + BOTONES DE ACCIÓN -->
+            <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
+                <!-- Información Esencial de Lily: Vidas, Estrellas y Tiempo -->
+                <div id="hud-bottom-right" class="flex items-center gap-1 sm:gap-1.5">
+                    <div class="mini-pill" title="Vidas de Lily (❤️ Vidas: 3)">
+                        <span>❤️</span>
+                        <span class="text-[11px] sm:text-xs text-pink-200 font-semibold">Vidas:</span>
+                        <b id="mini-lives">3</b>
+                        <span id="mini-cat" class="hidden" title="Gatito protector Mishi">🐱</span>
+                    </div>
+                    <div class="mini-pill" title="Estrellitas recolectadas (¡cada 50 estrellas ganas 1 vida extra!)">
+                        <span>⭐</span>
+                        <span class="text-[11px] sm:text-xs text-yellow-200 font-semibold">Estrellas:</span>
+                        <b id="mini-stars">0</b>
+                    </div>
+                    <div class="mini-pill" id="mini-time-pill"
+                        title="Contador del Tiempo restante (Alerta en 20s o menos)">
+                        <span>⏱️</span>
+                        <span class="text-[11px] sm:text-xs text-cyan-200 font-semibold">Tiempo:</span>
+                        <b id="mini-time">130s</b>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción Táctil (Puñito, Burbuja, Salto) -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-punch"
+                        class="touch-btn w-11 h-11 sm:w-13 sm:h-13 text-base bg-pink-400/35 border-pink-200"
+                        aria-label="Golpear">
+                        👊
+                    </button>
+                    <button id="btn-action"
+                        class="touch-btn w-11 h-11 sm:w-13 sm:h-13 text-base bg-purple-400/35 border-purple-200"
+                        aria-label="Lanzar Burbuja">
+                        🫧
+                    </button>
+                    <button id="btn-jump"
+                        class="touch-btn w-13 h-13 sm:w-16 sm:h-16 text-lg sm:text-xl bg-pink-400/50 border-pink-100 shadow-[0_0_16px_rgba(255,133,192,0.5)]"
+                        aria-label="Saltar">
+                        ⬆️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Entrada modular del juego (ES6 Modules) -->
+    <script src="./asets/lily_sheets_b64.js"></script>
+    <!-- Entrada del juego: Soporte híbrido para doble clic local (file://) y servidor web (http://) -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.write('<script src="./bundle.js"><\/script>');
+        } else {
+            const modScript = document.createElement('script');
+            modScript.type = 'module';
+            modScript.src = './src/main.js';
+            document.body.appendChild(modScript);
+        }
+    </script>
+</body>
+
+</html>

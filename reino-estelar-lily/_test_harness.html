@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+window.errors = [];
+window.addEventListener('error', (e) => {
+    window.errors.push(e.message + ' at ' + e.filename + ':' + e.lineno);
+    document.title = 'ERR: ' + e.message;
+    console.error('RUNTIME ERROR:', e.message, e.filename, e.lineno);
+});
+window.addEventListener('unhandledrejection', (e) => {
+    window.errors.push('Promise: ' + (e.reason?.message || e.reason));
+    document.title = 'REJ: ' + (e.reason?.message || e.reason);
+    console.error('PROMISE REJECTION:', e.reason);
+});
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>El Reino Estelar de Lily ✨👧🐱</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+</head>
+    </style>
+</head>
+<body>
+
+    <div id="rotate-overlay">
+        <div class="phone">📱</div>
+        <div>Gira tu dispositivo en horizontal 🌙</div>
+        <div style="font-size:14px;color:#ffc2e2;font-weight:500">El Reino Estelar de Lily se juega en formato horizontal</div>
+    </div>
+
+    <div id="game-wrapper">
+        <!-- Barra Superior: Botón de Menú y Pausa en la esquina superior izquierda (pantalla superior libre) -->
+        <div id="mini-hud" class="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-start justify-between pointer-events-none select-none">
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <button id="btn-menu" type="button" class="mini-pill mini-btn flex items-center gap-1.5 hover:bg-pink-500/35 active:scale-95 transition" title="Abrir Menú de Opciones (M)">
+                    <span class="text-base sm:text-lg">☰</span>
+                    <span class="text-xs sm:text-sm font-bold tracking-wide">Menú</span>
+                </button>
+                <button id="btn-pause" type="button" class="mini-pill mini-btn flex items-center gap-1 hover:bg-pink-500/35 active:scale-95 transition" title="Pausar juego (P)">
+                    <span>⏸️</span>
+                    <span class="text-xs font-bold tracking-wide hidden sm:inline">Pausa</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DIFERENTE: MENÚ DE CONFIGURACIÓN Y OPCIONES (Desplegable) -->
+        <div id="menu-overlay" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#0e0724]/90 backdrop-blur-md p-3 sm:p-5">
+            <div class="max-w-xl w-full max-h-[92vh] overflow-y-auto bg-[#1b0e42]/95 border-4 border-pink-300/90 rounded-3xl p-5 sm:p-6 text-center shadow-[0_0_60px_rgba(255,133,192,0.45)] flex flex-col gap-4">
+                
+                <!-- Encabezado del Menú -->
+                <div class="border-b border-pink-300/30 pb-2">
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-200 via-yellow-200 to-purple-200">
+                        📋 Menú de Lily
+                    </h3>
+                    <p class="text-xs text-purple-200 mt-0.5">⏸️ Juego en pausa · El tiempo está detenido</p>
+                </div>
+
+                <div id="hud-bar" class="flex flex-col gap-3.5 text-left">
+                    <!-- Sección 1: Música y Sonido -->
+                    <div class="bg-purple-950/70 border border-pink-300/35 rounded-2xl p-3.5 flex flex-col gap-2.5">
+                        <div class="text-xs font-bold text-pink-200 flex items-center gap-1.5">
+                            <span>🎵</span>
+                            <span>Música y Efectos de Sonido</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="btn-music" type="button" class="kawaii-pill px-3 py-1.5 text-xs font-semibold text-pink-100 hover:bg-pink-500/30 active:scale-95 transition flex items-center gap-1.5" title="Activar/Silenciar Música">
+                                <span id="music-icon">🎵</span>
+                                <span>Música</span>
+                            </button>
+
+                            <button id="btn-melody" type="button" class="kawaii-pill px-3 py-1.5 text-xs font-semibold text-yellow-100 hover:bg-purple-500/40 active:scale-95 transition flex items-center gap-1.5" title="Cambiar Melodía">
+                                <span>🎹</span>
+                                <span id="melody-name" class="inline text-xs">1. Nana Estelar</span>
+                            </button>
+
+                            <button id="btn-sfx" type="button" class="kawaii-pill px-3 py-1.5 text-xs font-semibold text-pink-100 hover:bg-pink-500/30 active:scale-95 transition flex items-center gap-1.5" title="Efectos de Sonido (SFX)">
+                                <span>🔔</span>
+                                <span>Efectos SFX</span>
+                            </button>
+
+                            <div class="kawaii-pill px-3 py-1.5 flex items-center gap-2" title="Volumen General">
+                                <span class="text-xs">🔉 Vol:</span>
+                                <input id="volume-slider" type="range" min="0" max="100" value="55" class="kawaii-slider">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 2: Estado y Progreso de la Partida -->
+                    <div class="bg-purple-950/70 border border-pink-300/35 rounded-2xl p-3.5 flex flex-col gap-2.5">
+                        <div class="text-xs font-bold text-pink-200 flex items-center gap-1.5">
+                            <span>⭐</span>
+                            <span>Progreso de Lily en la Misión</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20">
+                                <div class="text-pink-300 text-[11px]">Energía</div>
+                                <div id="hud-hearts" class="text-sm font-bold mt-0.5">💖💖💖</div>
+                                <span id="hud-lives" class="text-[11px] text-red-300">❤️×3</span>
+                            </div>
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20">
+                                <div class="text-yellow-300 text-[11px]">Estrellitas</div>
+                                <div class="text-sm font-bold text-yellow-200 mt-0.5">🍬 <span id="hud-stars">0</span></div>
+                            </div>
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20">
+                                <div class="text-cyan-300 text-[11px]">Tiempo</div>
+                                <div id="hud-timer" class="text-sm font-bold text-white mt-0.5">130s</div>
+                                <div id="hud-timer-pill" class="hidden"></div>
+                            </div>
+                            <div class="bg-indigo-950/80 rounded-xl p-2 border border-pink-300/20" id="hud-deaths-pill">
+                                <div class="text-pink-300 text-[11px]">Muertes</div>
+                                <div class="text-sm font-bold text-pink-200 mt-0.5">💀 <span id="hud-deaths">0</span></div>
+                                <span id="hud-checkpoint" class="hidden text-[10px] text-yellow-300">🚩 Checkpoint</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs px-1 text-purple-200">
+                            <div>Mundo: <b id="hud-level" class="text-yellow-300">1-1</b></div>
+                            <div>Poder: <b id="hud-power-name" class="text-pink-300">Doble Salto</b></div>
+                            <div id="hud-power-badge" class="hidden"></div>
+                            <div>Puntaje: <b id="hud-score" class="text-white">00000</b></div>
+                        </div>
+                    </div>
+
+                    <!-- Sección 3: Acciones Rápidas -->
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button id="btn-fullscreen" type="button" class="kawaii-pill px-3.5 py-1.5 text-xs font-bold text-pink-100 hover:bg-pink-500/30 transition">
+                            ⛶ Pantalla Completa
+                        </button>
+                        <button id="btn-help" type="button" class="kawaii-pill px-3.5 py-1.5 text-xs font-bold text-pink-100 hover:bg-pink-500/30 transition">
+                            ❔ Guía de Controles
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botón de Cerrar Menú -->
+                <div class="pt-1">
+                    <button id="btn-close-menu" type="button" class="kawaii-btn px-8 py-3 rounded-full font-bold text-base w-full sm:w-auto shadow-lg">
+                        ✖ Cerrar Menú y Seguir Jugando
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAUSA -->
+        <div id="pause-overlay" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#12082e]/70 backdrop-blur-sm p-4">
+            <div class="max-w-xs w-full bg-[#1e114a]/95 border-4 border-pink-300 rounded-3xl p-6 text-center shadow-2xl">
+                <div class="text-5xl mb-2">⏸️</div>
+                <h3 class="text-2xl font-bold text-pink-200 mb-1">Juego en pausa</h3>
+                <p class="text-xs text-purple-200 mb-4">El tiempo está detenido. Presiona P para continuar.</p>
+                <button id="btn-resume" type="button" class="kawaii-btn px-6 py-2.5 rounded-full font-bold text-base">▶ Continuar</button>
+            </div>
+        </div>
+
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas" tabindex="0"></canvas>
+
+        <!-- Toast / Floating Kawaii Notification Banner -->
+        <div id="toast-banner" class="
+            absolute top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none
+            transition-all duration-300 opacity-0 transform -translate-y-4
+            kawaii-pill px-5 py-1.5 text-center text-xs sm:text-sm font-bold text-pink-100 shadow-lg whitespace-nowrap
+        ">
+            ✨ ¡Bienvenida al Reino Estelar de Lily! ✨
+        </div>
+
+        <!-- START SCREEN OVERLAY -->
+        <div id="title-overlay" class="absolute inset-0 z-30 flex items-center justify-center bg-gradient-to-b from-[#11072e]/88 via-[#1c0f45]/88 to-[#0b0521]/95 backdrop-blur-sm p-3 sm:p-5">
+            <div class="max-w-xl w-full bg-[#1e114a]/95 border-4 border-pink-300/85 rounded-3xl p-5 sm:p-6 text-center shadow-[0_0_60px_rgba(255,133,192,0.5)] relative overflow-hidden">
+                <div class="absolute -top-8 -left-8 w-28 h-28 bg-pink-400/20 rounded-full blur-xl pointer-events-none"></div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-purple-400/20 rounded-full blur-xl pointer-events-none"></div>
+
+                <!-- Live Portrait Preview Canvas of Lily matching Reference Image -->
+                <div class="flex flex-col items-center justify-center mb-2">
+                    <div class="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-b from-[#351d78] to-[#160a3a] border-4 border-pink-300 shadow-[0_0_25px_rgba(255,133,192,0.6)] flex items-center justify-center animate-float">
+                        <canvas id="lilyPreviewCanvas" width="128" height="128" class="w-28 h-28 sm:w-32 sm:h-32"></canvas>
+                    </div>
+                    <span class="mt-1.5 inline-flex items-center gap-1.5 bg-pink-500/25 border border-pink-300/60 rounded-full px-3 py-0.5 text-[11px] sm:text-xs text-pink-200 font-semibold">
+                        👧🏻👓🎧 Lily con gafas redondas, buso rosa y diadema de gatito acolchada
+                    </span>
+                </div>
+
+                <h1 class="text-2xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-200 via-yellow-200 to-purple-200 mb-1">
+                    El Reino Estelar de Lily
+                </h1>
+                <p class="text-pink-100/90 text-xs sm:text-sm mb-3.5 max-w-md mx-auto">
+                    Entra por la computadora rosa de Lily, abre cofres sorpresa, rescata a tu gatito protector en el Nivel 3 y derrota al Rey Marciano en el tenebroso Mundo 1-4.
+                </p>
+
+                <!-- Mode & Melody Selector -->
+                <div class="flex flex-wrap items-center justify-center gap-2 mb-4">
+                    <div class="bg-purple-950/80 border border-pink-300/40 rounded-2xl px-3 py-1.5 flex items-center gap-2 text-xs">
+                        <span class="text-pink-200 font-semibold">🎬 Comenzar en:</span>
+                        <select id="start-level-select" class="bg-indigo-950 text-yellow-200 font-bold rounded-lg px-2 py-1 border border-pink-300/50 outline-none cursor-pointer">
+                            <option value="intro">💻 Habitación de Lily (Intro + Aventura Completa)</option>
+                            <option value="0">🌙 Mundo 1-1: Noche Estelar (Polvo de Hadas)</option>
+                            <option value="1">🌅 Mundo 1-2: Atardecer Cósmico (Lluvia + Fuego)</option>
+                            <option value="2">☀️ Mundo 1-3: Día de Cristal (¡Gatito Protector! 🐱)</option>
+                            <option value="3">🐙 Mundo 1-4: Abismo Tenebroso (¡BOSS FINAL! 👑)</option>
+                            <option value="4">🏙️ Mundo 2-1: Tierra Devastada (¡Hombres Enmascarados! 🎭)</option>
+                            <option value="5">🌇 Mundo 2-2: Atardecer Carmesí (¡Hombres Zombie y Escaleras! 🧟🔥)</option>
+                        </select>
+                    </div>
+
+                    <button id="btn-preview-melody" type="button" class="kawaii-btn-secondary rounded-2xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+                        <span>🎶</span>
+                        <span id="preview-melody-text">Música: Nana Estelar</span>
+                    </button>
+                </div>
+
+                <!-- BIG START BUTTON -->
+                <button id="btn-start-game" type="button" class="kawaii-btn pulse-start px-8 py-3.5 rounded-full text-lg sm:text-2xl font-extrabold tracking-wide w-full sm:w-auto mb-3.5">
+                    ✨ ¡COMENZAR A JUGAR! ✨
+                </button>
+
+                <!-- Controls Quick Guide -->
+                <div class="bg-indigo-950/70 border border-indigo-400/30 rounded-2xl p-2.5 text-[11px] sm:text-xs text-indigo-100 flex flex-wrap justify-center gap-x-4 gap-y-1">
+                    <span>⬅️➡️ o <b>A / D</b> : Caminar</span>
+                    <span>⬆️ / <b>W</b> / <b>Espacio</b> : Salto y Doble Salto</span>
+                    <span>🚀 Sube a la <b>Nave Estelar</b> antes de <b>0s</b> para viajar al siguiente nivel</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINAL GAME VICTORY MODAL (Only shown after beating Level 3) -->
+        <div id="victory-overlay" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-[#12082e]/88 backdrop-blur-sm p-4">
+            <div class="max-w-md w-full bg-[#221252]/95 border-4 border-yellow-200/80 rounded-3xl p-6 sm:p-7 text-center shadow-[0_0_55px_rgba(255,229,143,0.5)]">
+                <div id="modal-emoji" class="text-5xl mb-2 animate-float">👑🚀👧🏻🎧🪐</div>
+                <h2 id="modal-title" class="text-2xl sm:text-3xl font-extrabold text-yellow-200 mb-2">
+                    ¡Victoria Galáctica y Salvación de la Tierra!
+                </h2>
+                <p id="modal-desc" class="text-pink-100 text-xs sm:text-sm mb-4">
+                    ¡Lily cruzó la galaxia, derrotó al Rey Marciano y sobrevivió al Atardecer Carmesí, purificando las almas y restaurando la esperanza para reconstruir la Tierra!
+                </p>
+
+                <div class="bg-purple-950/75 border border-pink-300/40 rounded-2xl p-3.5 mb-5 grid grid-cols-3 gap-2 text-xs sm:text-sm">
+                    <div>
+                        <div class="text-pink-200 text-[11px]">Estrellitas</div>
+                        <div id="modal-stars" class="text-lg font-bold text-yellow-300">🍬 0</div>
+                    </div>
+                    <div class="border-x border-pink-300/30">
+                        <div class="text-pink-200 text-[11px]">Puntaje</div>
+                        <div id="modal-score" class="text-lg font-bold text-white">0</div>
+                    </div>
+                    <div>
+                        <div class="text-pink-200 text-[11px]">Muertes</div>
+                        <div id="modal-deaths" class="text-lg font-bold text-pink-300">💀 0</div>
+                    </div>
+                </div>
+
+                <button id="btn-next-action" class="kawaii-btn px-8 py-3.5 rounded-full text-lg font-bold w-full">
+                    🌟 Jugar de Nuevo (Con Intro) 🌟
+                </button>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="help-overlay" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-[#12082e]/80 backdrop-blur-sm p-4">
+            <div class="max-w-md w-full bg-[#1e114a]/95 border-4 border-pink-300 rounded-3xl p-6 text-center shadow-2xl">
+                <h3 class="text-2xl font-bold text-pink-200 mb-3">🎀 Guía del Reino Estelar 🎀</h3>
+                <ul class="text-left text-xs sm:text-sm space-y-2 text-purple-100 mb-5 bg-purple-950/60 p-4 rounded-2xl border border-pink-300/30">
+                    <li>🧰 <b>Cofres Sorpresa:</b> Están en el piso. Acércate o salta encima para abrirlos y descubrir poderes y dulces. ¡50 estrellitas = 1 vida extra!</li>
+                    <li>🐱 <b>Gatito Guardián (Nivel 3):</b> En el Mundo 1-3 encontrarás a tu gatito compañero que bloquea las balas y dispara estrellitas. ¡Pero si te toca un marciano o caes al vacío, lo pierdes!</li>
+                    <li>🚀 <b>Cohete Propulsor (5s de Vuelo):</b> Encuentra el Cohete dentro de las cajitas sorpresa para volar libremente durante 5 segundos manteniendo <b>Saltar</b>.</li>
+                    <li>🐙👑 <b>Mundo 1-4 (Boss Tenebroso):</b> Supera el planeta oscuro y derrota al Rey Kraken Marciano saltándole encima, con <b>el poder del Puñito 👊 (sale de los cofres; golpea con C / F / V o el botón 👊)</b> o con <b>Burbujas de Corazón (Z / X / Shift / 🫧)</b> para encogerlo hasta vencerlo.</li>
+                    <li>🏚️🪜 <b>Mundo 2-1 (Tierra Devastada):</b> Al vencer al Rey Marciano y escapar en la nave, Lily llega a la Tierra destruida. Sube escaleras 🪜, salta sobre techos de casas en ruinas 🏚️, esquiva abismos profundos y rescata a los hombres enmascarados 🎭 para reconstruir la vida humana.</li>
+                    <li>🌇🧟 <b>Mundo 2-2 (Atardecer Sombrío):</b> ¡Dificultad extrema! El cielo se tiñe de carmesí apocalíptico. Hay muy pocos cofres, las escaleras se desprenden y caen sobre Lily aplastándola si no tiene cuidado, y hombres transformados en zombies 🧟 te persiguen incansablemente para atraparte.</li>
+                    <li>⏸️ <b>Pausa y Menú:</b> Usa los botones ⏸️ y ☰ de arriba a la derecha (o la tecla P). La música cambia sola de melodía.</li>
+                </ul>
+                <button id="btn-close-help" class="kawaii-btn px-6 py-2.5 rounded-full font-bold text-base">
+                    💖 ¡Volver al Juego!
+                </button>
+            </div>
+        </div>
+
+        <!-- Controles Inferiores + Guía Tutorial + Información Esencial en la PARTE DERECHA INFERIOR -->
+        <div id="touch-controls" class="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-3 right-2.5 sm:right-3 z-20 flex items-end justify-between pointer-events-none select-none gap-2">
+            <!-- Lado Izquierdo Inferior: Movimiento -->
+            <div class="flex items-center gap-2.5 pointer-events-auto">
+                <button id="btn-left" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 text-xl" aria-label="Mover Izquierda">
+                    ◀
+                </button>
+                <button id="btn-right" class="touch-btn w-12 h-12 sm:w-14 sm:h-14 text-xl" aria-label="Mover Derecha">
+                    ▶
+                </button>
+            </div>
+
+            <!-- Centro Inferior: Barra Dinámica de Historia y Tutorial -->
+            <div id="story-guide-bar" class="pointer-events-none max-w-[34%] sm:max-w-sm md:max-w-md w-full flex items-center justify-center transition-all duration-300 mb-0.5">
+                <div class="kawaii-pill px-3 py-1 sm:py-1.5 flex items-center justify-center gap-1.5 text-center text-[10px] sm:text-xs md:text-sm font-semibold text-pink-100 shadow-[0_4px_16px_rgba(255,133,192,0.3)] border border-pink-300/60 bg-[#160a36]/90 backdrop-blur-md">
+                    <span id="story-guide-icon" class="text-xs sm:text-sm flex-shrink-0 animate-bounce">✨</span>
+                    <span id="story-guide-text" class="tracking-wide text-yellow-100 drop-shadow line-clamp-2">¡Lily ha aterrizado en su nave! Avanza a la derecha y recolecta estrellitas.</span>
+                </div>
+            </div>
+
+            <!-- PARTE DERECHA INFERIOR: INFORMACIÓN ESENCIAL DEL JUEGO + BOTONES DE ACCIÓN -->
+            <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
+                <!-- Información Esencial de Lily: Vidas, Estrellas y Tiempo -->
+                <div id="hud-bottom-right" class="flex items-center gap-1 sm:gap-1.5">
+                    <div class="mini-pill" title="Vidas de Lily (❤️ Vidas: 3)">
+                        <span>❤️</span>
+                        <span class="text-[11px] sm:text-xs text-pink-200 font-semibold">Vidas:</span>
+                        <b id="mini-lives">3</b>
+                        <span id="mini-cat" class="hidden" title="Gatito protector Mishi">🐱</span>
+                    </div>
+                    <div class="mini-pill" title="Estrellitas recolectadas (¡cada 50 estrellas ganas 1 vida extra!)">
+                        <span>⭐</span>
+                        <span class="text-[11px] sm:text-xs text-yellow-200 font-semibold">Estrellas:</span>
+                        <b id="mini-stars">0</b>
+                    </div>
+                    <div class="mini-pill" id="mini-time-pill" title="Contador del Tiempo restante (Alerta en 20s o menos)">
+                        <span>⏱️</span>
+                        <span class="text-[11px] sm:text-xs text-cyan-200 font-semibold">Tiempo:</span>
+                        <b id="mini-time">130s</b>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción Táctil (Puñito, Burbuja, Salto) -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-punch" class="touch-btn w-11 h-11 sm:w-13 sm:h-13 text-base bg-pink-400/35 border-pink-200" aria-label="Golpear">
+                        👊
+                    </button>
+                    <button id="btn-action" class="touch-btn w-11 h-11 sm:w-13 sm:h-13 text-base bg-purple-400/35 border-purple-200" aria-label="Lanzar Burbuja">
+                        🫧
+                    </button>
+                    <button id="btn-jump" class="touch-btn w-13 h-13 sm:w-16 sm:h-16 text-lg sm:text-xl bg-pink-400/50 border-pink-100 shadow-[0_0_16px_rgba(255,133,192,0.5)]" aria-label="Saltar">
+                        ⬆️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Entrada modular del juego (ES6 Modules) -->
+    <script type="module" src="./src/main.js"></script>
+
+<script>
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const q = new URLSearchParams(location.search);
+        const lvl = q.get('lvl');
+        if (lvl !== null) {
+            document.getElementById('start-level-select').value = lvl;
+            const btn = document.getElementById('btn-start-game');
+            if (btn) btn.click();
+            setTimeout(() => {
+                if (window.lily) {
+                    window.lily.landingInProgress = false;
+                    window.lily.inSpaceship = false;
+                    if (q.get('x')) window.lily.x = +q.get('x');
+                    window.lily.invincibleTimer = 0;
+                    window.lily.hearts = 99;
+                }
+                document.querySelectorAll('#toast-banner,#story-guide-bar').forEach(e => e.style.display='none');
+            }, 600);
+        }
+    }, 400);
+});
+</script>
+</body>
+
+</html>
