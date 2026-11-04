@@ -21,3 +21,4 @@ Juego de plataformas cósmico 2D en HTML5 Canvas con banda sonora sintetizada me
   - 👊 (`C` / `F` / `V`): Golpear con el Puñito
   - 🫧 (`Z` / `X` / `Shift`): Lanzar Burbujas de Corazón
   - 📱 Controles táctiles integrados en pantalla para dispositivos móviles
+
