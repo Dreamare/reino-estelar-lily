@@ -866,18 +866,24 @@
                 tileset: './asets/tileset_platforms.png',
                 lily: './asets/sprites_lily.png',
                 props: './asets/sprites_props_enemies.png',
+                lilyRun: './asets/movimiento/correr.png',
+                lilyRunFallback: './asets/Movimieto/correr.png',
+                lilyIdle: './asets/movimiento/quieta.png',
+                lilyIdleFallback: './asets/Movimieto/quieta.png',
+                lilyJump: './asets/movimiento/salto.png',
+                lilyJumpFallback: './asets/Movimieto/salto.png',
                 lilyAction: './asets/sprites_lily_animado.jpg',
                 lilyActionFallback: './asets/sprites_lily_animado.png',
-                lilyIdle: './asets/sprites_lily_reposo.jpg',
-                lilyIdleFallback: './asets/sprites_lily_reposo.png',
                 uiStart: './asets/ui_start_assets.jpg',
                 uiStartFallback: './asets/ui_start_assets.png'
             },
             assets: {},
             ready: {},
             sheets: {
-                action: { loaded: false, frames: [], refHeadWidth: 100, avgHeight: 200 },
-                idle: { loaded: false, frames: [], refHeadWidth: 100, avgHeight: 200 }
+                run: { loaded: false, frames: [], refHeight: 175.87, avgHeight: 172.1 },
+                idle: { loaded: false, frames: [], refHeight: 200.74, avgHeight: 198.5 },
+                jump: { loaded: false, frames: [], refHeight: 162.92, avgHeight: 151.8 },
+                action: { loaded: false, frames: [], refHeight: 200, avgHeight: 200 }
             },
 
             // Coordenadas exactas de cada sprite en las hojas de ./asets/
@@ -975,8 +981,8 @@
             },
 
             // Procesa una hoja de sprites en un <canvas> oculto eliminando el fondo blanco
-            // (R > 240 && G > 240 && B > 240 -> alpha = 0) y aplicando feathering en los bordes
-            processGridSheet(img, sheetKey) {
+            // y sombras neutras residuales, aplicando feathering en los bordes y calibrando pivotes
+            processGridSheet(img, sheetKey, rows = 2, cols = 6, fixedRefHeight = null) {
                 const W = img.naturalWidth || img.width;
                 const H = img.naturalHeight || img.height;
                 const off = document.createElement('canvas');
@@ -992,7 +998,7 @@
                     const b64 = (typeof window !== 'undefined' && window.LILY_SHEETS_B64) ? window.LILY_SHEETS_B64[sheetKey] : null;
                     if (b64 && img.src !== b64) {
                         const retryImg = new Image();
-                        retryImg.onload = () => this.processGridSheet(retryImg, sheetKey);
+                        retryImg.onload = () => this.processGridSheet(retryImg, sheetKey, rows, cols, fixedRefHeight);
                         retryImg.src = b64;
                         return;
                     }
@@ -1005,17 +1011,15 @@
                     const r = data[i], g = data[i + 1], b = data[i + 2];
                     const minC = Math.min(r, g, b);
                     const maxDiff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
-                    if (minC > 236 && maxDiff < 20) {
+                    if ((minC > 234 && maxDiff < 22) || (minC > 198 && maxDiff <= 13)) {
                         data[i + 3] = 0;
-                    } else if (minC > 210 && maxDiff < 26) {
-                        const factor = (236 - minC) / (236 - 210);
+                    } else if (minC > 208 && maxDiff < 26) {
+                        const factor = Math.max(0, (234 - minC) / (234 - 208));
                         data[i + 3] = Math.min(data[i + 3], Math.floor(factor * 255));
                     }
                 }
                 octx.putImageData(imgData, 0, 0);
 
-                const cols = 6;
-                const rows = 2;
                 const cellW = W / cols;
                 const cellH = H / rows;
                 const frames = [];
@@ -1040,9 +1044,10 @@
 
                         let minX = sw, maxX = 0, minY = sh, maxY = 0;
                         let found = false;
+                        const borderMargin = 3;
 
-                        for (let y = 0; y < sh; y++) {
-                            for (let x = 0; x < sw; x++) {
+                        for (let y = borderMargin; y < sh - borderMargin; y++) {
+                            for (let x = borderMargin; x < sw - borderMargin; x++) {
                                 if (cd[(y * sw + x) * 4 + 3] > 35) {
                                     if (x < minX) minX = x;
                                     if (x > maxX) maxX = x;
@@ -1058,7 +1063,7 @@
                             minY = Math.floor(sh * 0.1); maxY = Math.floor(sh * 0.9);
                         }
 
-                        const pad = 3;
+                        const pad = 2;
                         const fMinX = Math.max(0, minX - pad);
                         const fMaxX = Math.min(sw, maxX + pad);
                         const fMinY = Math.max(0, minY - pad);
@@ -1073,20 +1078,23 @@
                         finalCtx.drawImage(cellCanvas, fMinX, fMinY, fw, fh, 0, 0, fw, fh);
 
                         const fData = finalCtx.getImageData(0, 0, fw, fh).data;
-                        const headYStart = Math.floor(fh * 0.08);
-                        const headYEnd = Math.floor(fh * 0.42);
-                        let headMinX = fw, headMaxX = 0;
+                        // Banda superior de la cabeza/casco con orejitas (0.05 a 0.28) libre de brazos y cola
+                        const headYStart = Math.floor(fh * 0.05);
+                        const headYEnd = Math.floor(fh * 0.28);
+                        let headMinX = fw, headMaxX = 0, headSumX = 0, headCount = 0;
 
                         for (let py = headYStart; py <= headYEnd; py++) {
                             for (let px = 0; px < fw; px++) {
                                 if (fData[(py * fw + px) * 4 + 3] > 60) {
                                     if (px < headMinX) headMinX = px;
                                     if (px > headMaxX) headMaxX = px;
+                                    headSumX += px;
+                                    headCount++;
                                 }
                             }
                         }
 
-                        const headCenterX = (headMinX < headMaxX) ? (headMinX + headMaxX) / 2 : fw / 2;
+                        const headCenterX = headCount > 0 ? (headSumX / headCount) : ((headMinX < headMaxX) ? (headMinX + headMaxX) / 2 : fw / 2);
                         const headWidth = (headMinX < headMaxX) ? (headMaxX - headMinX) : fw * 0.6;
                         totalH += fh;
 
@@ -1109,9 +1117,10 @@
                 }
 
                 const avgHeight = totalH / frames.length;
+                const refHeight = fixedRefHeight || avgHeight;
                 const refHeadWidth = frames.reduce((acc, f) => acc + f.headWidth, 0) / frames.length;
-                this.sheets[sheetKey] = { loaded: true, frames, avgHeight, refHeadWidth };
-                console.log(`[AssetManager] Hoja ${sheetKey} procesada: ${frames.length} frames.`);
+                this.sheets[sheetKey] = { loaded: true, frames, avgHeight, refHeight, refHeadWidth };
+                console.log(`[AssetManager] Hoja ${sheetKey} procesada: ${frames.length} frames (refHeight=${refHeight.toFixed(1)}).`);
             },
 
             processChromaKey(img) {
@@ -1385,28 +1394,27 @@
                     img.src = this.sources[key];
                 });
 
-                // 3. Cargar hojas de animación de Lily (Acción y Reposo con cuadrícula 2x6)
+                // 3. Cargar hojas de animación de Lily desde ./asets/movimiento/ (correr 4x8, quieta 4x6, salto 2x8, acción 2x6)
                 const b64Sheets = (typeof window !== 'undefined' && window.LILY_SHEETS_B64) ? window.LILY_SHEETS_B64 : null;
 
-                const actionImg = new Image();
-                actionImg.onload = () => this.processGridSheet(actionImg, 'action');
-                actionImg.onerror = () => {
-                    if (!actionImg.dataset.retried) {
-                        actionImg.dataset.retried = '1';
-                        actionImg.src = this.sources.lilyActionFallback;
-                    }
-                };
-                actionImg.src = (b64Sheets && b64Sheets.action) ? b64Sheets.action : this.sources.lilyAction;
+                const sheetDefs = [
+                    { key: 'run', rows: 4, cols: 8, refH: 175.87, src: this.sources.lilyRun, fallback: this.sources.lilyRunFallback },
+                    { key: 'idle', rows: 4, cols: 6, refH: 200.74, src: this.sources.lilyIdle, fallback: this.sources.lilyIdleFallback },
+                    { key: 'jump', rows: 2, cols: 8, refH: 162.92, src: this.sources.lilyJump, fallback: this.sources.lilyJumpFallback },
+                    { key: 'action', rows: 2, cols: 6, refH: null, src: this.sources.lilyAction, fallback: this.sources.lilyActionFallback }
+                ];
 
-                const idleImg = new Image();
-                idleImg.onload = () => this.processGridSheet(idleImg, 'idle');
-                idleImg.onerror = () => {
-                    if (!idleImg.dataset.retried) {
-                        idleImg.dataset.retried = '1';
-                        idleImg.src = this.sources.lilyIdleFallback;
-                    }
-                };
-                idleImg.src = (b64Sheets && b64Sheets.idle) ? b64Sheets.idle : this.sources.lilyIdle;
+                sheetDefs.forEach(def => {
+                    const sheetImg = new Image();
+                    sheetImg.onload = () => this.processGridSheet(sheetImg, def.key, def.rows, def.cols, def.refH);
+                    sheetImg.onerror = () => {
+                        if (!sheetImg.dataset.retried) {
+                            sheetImg.dataset.retried = '1';
+                            sheetImg.src = def.fallback;
+                        }
+                    };
+                    sheetImg.src = (b64Sheets && b64Sheets[def.key]) ? b64Sheets[def.key] : def.src;
+                });
 
                 // 4. Cargar y extraer el logo de portada (ui_start_assets) con Chroma Key
                 const uiStartImg = new Image();
@@ -2636,35 +2644,67 @@
 
         function getLilySpriteFrame(state) {
             const sheets = (typeof AssetManager !== 'undefined' && AssetManager.sheets) ? AssetManager.sheets : null;
-            const runFps = 10;
             const animTime = (state.animTime !== undefined) ? state.animTime : ((typeof lily !== 'undefined' && lily.animTime !== undefined) ? lily.animTime : (globalTick / 60));
-            const idleIdx = (state.idleStepIndex !== undefined) ? state.idleStepIndex : ((typeof lily !== 'undefined' && lily.idleStepIndex !== undefined) ? lily.idleStepIndex : 0);
 
-            // 1. Golpe puñito (Frame 11)
+            // 1. Golpe puñito (Hoja action frame 11 o salto frame 4)
             if ((state.punchTimer || 0) > 0) {
-                return { sheetKey: 'action', frameIndex: 11, isIdle: false };
+                if (sheets && sheets.action && sheets.action.loaded) {
+                    return { sheetKey: 'action', frameIndex: 11, isIdle: false };
+                }
+                return { sheetKey: 'jump', frameIndex: 4, isIdle: false };
             }
-            // 2. En el aire (Salto / Caída: Frames 7, 8, 9, 10)
+
+            // 2. En el aire: Secuencia completa de 16 cuadros en salto.png (2x8)
+            //    0..2: Impulso inicial | 3..5: Ascenso | 6..8: Ápice en el aire | 9..11: Descenso
             if (!state.onGround && !state.sitting) {
-                if ((state.jumpStartTimer || 0) > 0) return { sheetKey: 'action', frameIndex: 7, isIdle: false };
-                if (state.vy < -2.0) return { sheetKey: 'action', frameIndex: 8, isIdle: false };
-                if (state.vy >= -2.0 && state.vy <= 3.5) return { sheetKey: 'action', frameIndex: 9, isIdle: false };
-                return { sheetKey: 'action', frameIndex: 10, isIdle: false };
+                if ((state.jumpStartTimer || 0) > 0) {
+                    const p = 1 - Math.max(0, Math.min(1, state.jumpStartTimer / 0.09));
+                    const idx = Math.min(2, Math.floor(p * 3));
+                    return { sheetKey: 'jump', frameIndex: idx, isIdle: false };
+                }
+                const vy = state.vy || 0;
+                if (vy < -3.5) {
+                    // Ascenso rápido (frames 3, 4, 5)
+                    const t = Math.max(0, Math.min(0.999, (vy - (-12.5)) / (-3.5 - (-12.5))));
+                    return { sheetKey: 'jump', frameIndex: 3 + Math.floor(t * 3), isIdle: false };
+                }
+                if (vy <= 2.5) {
+                    // Suspensión en el punto más alto / ápice (frames 6, 7, 8)
+                    const t = Math.max(0, Math.min(0.999, (vy - (-3.5)) / (2.5 - (-3.5))));
+                    return { sheetKey: 'jump', frameIndex: 6 + Math.floor(t * 3), isIdle: false };
+                }
+                // Caída hacia el suelo (frames 9, 10, 11)
+                const t = Math.max(0, Math.min(0.999, (vy - 2.5) / (10.5 - 2.5)));
+                return { sheetKey: 'jump', frameIndex: 9 + Math.floor(t * 3), isIdle: false };
             }
-            // 3. Aterrizaje amortiguado (Frame 7)
+
+            // 3. Aterrizaje amortiguado y recuperación en salto.png (frames 12, 13, 14, 15)
+            const isMoving = Math.abs(state.vx || 0) > 0.28;
             if ((state.landTimer || 0) > 0) {
-                return { sheetKey: 'action', frameIndex: 7, isIdle: false };
+                if (!isMoving) {
+                    const p = 1 - Math.max(0, Math.min(1, state.landTimer / 0.16));
+                    const idx = 12 + Math.min(3, Math.floor(p * 4));
+                    return { sheetKey: 'jump', frameIndex: idx, isIdle: false };
+                } else if (state.landTimer > 0.09) {
+                    // Al aterrizar corriendo, muestra brevemente el amortiguamiento (12..13) y enlaza con carrera
+                    const idx = state.landTimer > 0.125 ? 12 : 13;
+                    return { sheetKey: 'jump', frameIndex: idx, isIdle: false };
+                }
             }
-            // 4. Corriendo (Ciclo de 6 cuadros: Frames 0 a 5 a 10 FPS)
-            if (Math.abs(state.vx || 0) > 0.35) {
-                return { sheetKey: 'action', frameIndex: Math.floor(animTime * runFps) % 6, isIdle: false };
+
+            // 4. Corriendo / Caminando fluido con 32 cuadros continuos en correr.png (4x8 a 24 FPS)
+            if (isMoving) {
+                const runFps = 24;
+                const idx = Math.floor(animTime * runFps) % 32;
+                return { sheetKey: 'run', frameIndex: idx, isIdle: false };
             }
-            // 5. Reposo / Idle con 12 cuadros de micro-gestos y respiración (sprites_lily_reposo.jpg)
-            if (sheets && sheets.idle && sheets.idle.loaded) {
-                const step = IDLE_TIMELINE[idleIdx] || IDLE_TIMELINE[0];
-                return { sheetKey: 'idle', frameIndex: step.frame, isIdle: true };
-            }
-            return { sheetKey: 'action', frameIndex: 6, isIdle: true };
+
+            // 5. Reposo / Quieta fluido con 24 cuadros en quieta.png (4x6 en ciclo ping-pong suave a 14 FPS)
+            const idleFps = 14;
+            const cycleLen = 46; // 0..23 (24) + 22..1 (22) para bucle infinito sin salto
+            const step = Math.floor(animTime * idleFps) % cycleLen;
+            const idleFrame = step < 24 ? step : (cycleLen - step);
+            return { sheetKey: 'idle', frameIndex: idleFrame, isIdle: true };
         }
 
         // Player state (Lily matching reference image)
@@ -5046,7 +5086,7 @@
 
             if (landedThisFrame) {
                 if (!lily.wasOnGround) {
-                    lily.landTimer = 0.10;
+                    lily.landTimer = 0.16;
                 }
                 lily.wasOnGround = true;
                 lily.onGround = true;
@@ -5060,7 +5100,7 @@
 
             // 5. Execute Jump
             if (keys.jumpBufferTimer > 0) {
-                lily.jumpStartTimer = 0.08;
+                lily.jumpStartTimer = 0.09;
                 lily.idleStepIndex = 0;
                 lily.idleStepTimer = 0;
                 if (lily.coyoteTimer > 0) {
@@ -5949,22 +5989,27 @@
          ******************************************************************/
         function drawLilyCharacter(c, centerX, centerY, scale = 1, state = lily) {
             // =================================================================
-            // 🌟 MOTOR DE SPRITES: HOJAS 2x6 AISLADAS (Acción + Reposo)
+            // 🌟 MOTOR DE SPRITES DE ALTA FLUIDEZ: correr.png (32f), quieta.png (24f), salto.png (16f)
             // =================================================================
             const sheets = (typeof AssetManager !== 'undefined' && AssetManager.sheets) ? AssetManager.sheets : null;
-            if (sheets && (sheets.action.loaded || sheets.idle.loaded)) {
+            if (sheets && (sheets.run.loaded || sheets.idle.loaded || sheets.jump.loaded || sheets.action.loaded)) {
                 const frameInfo = getLilySpriteFrame(state);
-                const activeSheet = (sheets[frameInfo.sheetKey] && sheets[frameInfo.sheetKey].loaded)
+                let activeSheet = (sheets[frameInfo.sheetKey] && sheets[frameInfo.sheetKey].loaded)
                     ? sheets[frameInfo.sheetKey]
-                    : (sheets.action.loaded ? sheets.action : sheets.idle);
+                    : null;
+                if (!activeSheet) {
+                    activeSheet = (sheets.idle && sheets.idle.loaded) ? sheets.idle
+                        : ((sheets.run && sheets.run.loaded) ? sheets.run
+                            : ((sheets.jump && sheets.jump.loaded) ? sheets.jump : sheets.action));
+                }
 
                 if (activeSheet && activeSheet.loaded && activeSheet.frames.length > 0) {
                     const frame = activeSheet.frames[frameInfo.frameIndex] || activeSheet.frames[0];
-                    const refHeight = frameInfo.sheetKey === 'action' && activeSheet.frames[6]
+                    const refHeight = (frameInfo.sheetKey === 'action' && activeSheet.frames[6])
                         ? activeSheet.frames[6].charH
-                        : activeSheet.avgHeight;
+                        : (activeSheet.refHeight || activeSheet.avgHeight);
 
-                    // Escala base calibrada al alto de Lily en el mundo
+                    // Escala base calibrada al alto de referencia de Lily en el mundo
                     const baseScale = (68 * scale) / refHeight;
                     const globalLily = (typeof window !== 'undefined' && window.lily) ? window.lily : null;
                     const animClock = (state.animTime !== undefined) ? state.animTime : ((globalLily && globalLily.animTime !== undefined) ? globalLily.animTime : (globalTick / 60));
