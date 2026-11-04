@@ -861,6 +861,8 @@
             sources: {
                 bg: './asets/bg_cosmic_sunset.png',
                 bgFallback: './asets/bg_cosmic_sunset.jpg',
+                bedroom: './asets/bg_bedroom.jpg',
+                bedroomFallback: './asets/bg_bedroom.jpg.jpg',
                 tileset: './asets/tileset_platforms.png',
                 lily: './asets/sprites_lily.png',
                 props: './asets/sprites_props_enemies.png',
@@ -1353,6 +1355,22 @@
                     }
                 };
                 bgImg.src = this.sources.bg;
+
+                // 1b. Cargar ilustración de la habitación (bg_bedroom.jpg) con fallback
+                const bedroomImg = new Image();
+                bedroomImg.onload = () => {
+                    this.assets.bedroom = bedroomImg;
+                    this.ready.bedroom = true;
+                };
+                bedroomImg.onerror = () => {
+                    if (!bedroomImg.dataset.retried) {
+                        bedroomImg.dataset.retried = '1';
+                        bedroomImg.src = this.sources.bedroomFallback;
+                    } else {
+                        this.ready.bedroom = false;
+                    }
+                };
+                bedroomImg.src = this.sources.bedroom;
 
                 // 2. Cargar y procesar con Chroma Key las 3 hojas de sprites/tiles
                 ['tileset', 'lily', 'props'].forEach(key => {
@@ -2582,16 +2600,16 @@
         // Intro Bedroom Scene State
         const introRoom = {
             sittingInChair: true,
-            lilyX: 255,
-            lilyY: 378,
+            lilyX: 355,
+            lilyY: 360,
             facing: 1,
             animTimer: 0,
             reachingScreen: false,
             suctionActive: false,
             suctionProgress: 0, // 0 to 1
-            deskX: 620,
-            monitorCenterX: 690,
-            monitorCenterY: 315
+            deskX: 750,
+            monitorCenterX: 825,
+            monitorCenterY: 285
         };
 
         const IDLE_TIMELINE = [
@@ -2918,13 +2936,15 @@
         function startIntroRoomScene() {
             gameState = 'INTRO_ROOM';
             introRoom.sittingInChair = true;
-            introRoom.lilyX = 255;
-            introRoom.lilyY = 374;
+            introRoom.lilyX = 355;
+            introRoom.lilyY = 360;
             introRoom.facing = 1;
             introRoom.animTimer = 0;
             introRoom.reachingScreen = false;
             introRoom.suctionActive = false;
             introRoom.suctionProgress = 0;
+            introRoom.monitorCenterX = 825;
+            introRoom.monitorCenterY = 285;
             particles = [];
             floatingTexts = [];
             hudLevel.textContent = 'Cuarto';
@@ -2973,7 +2993,7 @@
             if (introRoom.sittingInChair) {
                 if (wantsRight || wantsLeft || wantsJumpOrInteract) {
                     introRoom.sittingInChair = false;
-                    introRoom.lilyY = 390;
+                    introRoom.lilyY = 435; // Altura de la alfombra rosa al levantarse
                     keys.jumpBufferTimer = 0;
                     keys.actionJustPressed = false;
                     audio.playJump(false);
@@ -2985,16 +3005,16 @@
                     introRoom.facing = 1;
                     introRoom.animTimer += 0.32;
                 } else if (wantsLeft) {
-                    introRoom.lilyX = Math.max(120, introRoom.lilyX - 3.6);
+                    introRoom.lilyX = Math.max(260, introRoom.lilyX - 3.6); // Límite izquierdo en X = 260
                     introRoom.facing = -1;
                     introRoom.animTimer += 0.32;
                 } else {
                     introRoom.animTimer = 0;
                 }
 
-                // When Lily reaches the pink desk/computer (around X = 575)
-                if (introRoom.lilyX >= 565) {
-                    introRoom.lilyX = 568;
+                // Secuencia de absorción cuando Lily camina a la derecha y alcanza lilyX >= 700
+                if (introRoom.lilyX >= 700) {
+                    introRoom.lilyX = 700;
                     introRoom.facing = 1;
                     introRoom.reachingScreen = true;
                     // Trigger magical computer screen suction!
@@ -6505,265 +6525,90 @@
         }
 
         /******************************************************************
-         * RENDER COZY BEDROOM & PINK COMPUTER INTRO SCENE
+         * RENDER COZY BEDROOM & PINK COMPUTER INTRO SCENE (bg_bedroom.jpg)
          ******************************************************************/
         function renderIntroRoomScene() {
-            // Cozy nocturnal bedroom walls
-            const wallGrad = ctx.createLinearGradient(0, 0, 0, 430);
-            wallGrad.addColorStop(0, '#231542');
-            wallGrad.addColorStop(1, '#3c2369');
-            ctx.fillStyle = wallGrad;
-            ctx.fillRect(0, 0, VIEW_W, 430);
+            // 1. Carga del fondo: Dibujar bg_bedroom.jpg ocupando todo el canvas (0, 0, VIEW_W, VIEW_H)
+            const bgBedroom = AssetManager.get('bedroom');
+            if (AssetManager.isReady('bedroom') && bgBedroom) {
+                ctx.drawImage(bgBedroom, 0, 0, VIEW_W, VIEW_H);
+            } else {
+                // Fallback vectorial si la ilustración aún se está cargando
+                const wallGrad = ctx.createLinearGradient(0, 0, 0, 420);
+                wallGrad.addColorStop(0, '#231542');
+                wallGrad.addColorStop(1, '#3c2369');
+                ctx.fillStyle = wallGrad;
+                ctx.fillRect(0, 0, VIEW_W, 420);
 
-            // Cute wallpaper subtle vertical stripes
-            ctx.fillStyle = 'rgba(255, 194, 226, 0.04)';
-            for (let x = 0; x < VIEW_W; x += 48) {
-                ctx.fillRect(x, 0, 24, 430);
-            }
+                const floorGrad = ctx.createLinearGradient(0, 420, 0, VIEW_H);
+                floorGrad.addColorStop(0, '#4a2c59');
+                floorGrad.addColorStop(1, '#2d1838');
+                ctx.fillStyle = floorGrad;
+                ctx.fillRect(0, 420, VIEW_W, VIEW_H - 420);
 
-            // Wooden Baseboard & Warm Bedroom Floor
-            ctx.fillStyle = '#ffadd2';
-            ctx.fillRect(0, 422, VIEW_W, 10);
-            const floorGrad = ctx.createLinearGradient(0, 432, 0, VIEW_H);
-            floorGrad.addColorStop(0, '#4a2c59');
-            floorGrad.addColorStop(1, '#2d1838');
-            ctx.fillStyle = floorGrad;
-            ctx.fillRect(0, 432, VIEW_W, VIEW_H - 432);
-
-            // Cozy Pastel Rug in center of bedroom floor
-            ctx.save();
-            ctx.fillStyle = '#ff9ed2';
-            ctx.strokeStyle = '#fff0f6';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.ellipse(470, 468, 250, 22, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
-
-            // Bedroom Window showing the Starry Night Sky outside
-            ctx.save();
-            const winX = 350, winY = 70, winW = 190, winH = 165;
-            ctx.fillStyle = '#0c0626';
-            drawRoundedRect(ctx, winX, winY, winW, winH, 14);
-            ctx.fill();
-
-            // Stars & Crescent Moon inside window
-            for (let i = 0; i < 18; i++) {
-                const sx = winX + 18 + ((i * 37) % (winW - 36));
-                const sy = winY + 18 + ((i * 29) % (winH - 36));
-                ctx.fillStyle = i % 2 === 0 ? '#ffe58f' : '#ffffff';
+                // Alfombra rosa
+                ctx.save();
+                ctx.fillStyle = '#ff9ed2';
+                ctx.strokeStyle = '#fff0f6';
+                ctx.lineWidth = 4;
                 ctx.beginPath();
-                ctx.arc(sx, sy, (i % 3) + 1, 0, Math.PI * 2);
+                ctx.ellipse(470, 468, 250, 22, 0, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.stroke();
+                ctx.restore();
             }
-            ctx.fillStyle = '#fff3b0';
-            ctx.beginPath();
-            ctx.arc(winX + 135, winY + 55, 22, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#0c0626';
-            ctx.beginPath();
-            ctx.arc(winX + 145, winY + 49, 18, 0, Math.PI * 2);
-            ctx.fill();
 
-            // Window panes & pastel curtains
-            ctx.strokeStyle = '#ffd6eb';
-            ctx.lineWidth = 5;
-            drawRoundedRect(ctx, winX, winY, winW, winH, 14);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(winX + winW / 2, winY);
-            ctx.lineTo(winX + winW / 2, winY + winH);
-            ctx.moveTo(winX, winY + winH / 2);
-            ctx.lineTo(winX + winW, winY + winH / 2);
-            ctx.stroke();
+            // 2. EFECTOS MÁGICOS SOBRE LA PANTALLA (monitorCenterX = 825, monitorCenterY = 285)
+            const mX = introRoom.monitorCenterX;
+            const mY = introRoom.monitorCenterY;
 
-            // Soft Pink Curtains
-            ctx.fillStyle = '#ff85c0';
-            ctx.beginPath();
-            ctx.moveTo(winX - 10, winY - 8);
-            ctx.quadraticCurveTo(winX + 35, winY + 70, winX - 12, winY + winH + 10);
-            ctx.lineTo(winX - 22, winY - 8);
-            ctx.closePath();
-            ctx.fill();
-            ctx.beginPath();
-            ctx.moveTo(winX + winW + 10, winY - 8);
-            ctx.quadraticCurveTo(winX + winW - 35, winY + 70, winX + winW + 12, winY + winH + 10);
-            ctx.lineTo(winX + winW + 22, winY - 8);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-
-            // Cozy Bed on the Left with Cat Pillow & Pastel Duvet
+            // 🌀 Resplandor radial pulsante sobre el monitor
+            const pulseR = 55 + Math.sin(globalTick * 0.1) * 8 + (introRoom.suctionProgress * 85);
             ctx.save();
-            // Headboard
-            ctx.fillStyle = '#f78fb8';
-            drawRoundedRect(ctx, 45, 295, 28, 135, 10);
-            ctx.fill();
-            // Mattress & Duvet
-            ctx.fillStyle = '#fff0f6';
-            drawRoundedRect(ctx, 65, 355, 155, 55, 10);
-            ctx.fill();
-            ctx.fillStyle = '#d3adf7';
-            drawRoundedRect(ctx, 105, 355, 115, 55, 10);
-            ctx.fill();
-            // Cute Pillow
-            ctx.fillStyle = '#ffc2e2';
-            drawRoundedRect(ctx, 72, 338, 42, 22, 8);
-            ctx.fill();
-            // Bed Frame Legs
-            ctx.fillStyle = '#b85d8c';
-            ctx.fillRect(55, 405, 14, 25);
-            ctx.fillRect(200, 405, 14, 25);
-            ctx.restore();
-
-            // Wall Shelf with Books & Cute Plant
-            ctx.save();
-            ctx.fillStyle = '#ffadd2';
-            drawRoundedRect(ctx, 90, 150, 150, 12, 5);
-            ctx.fill();
-            // Books
-            ctx.fillStyle = '#ff85c0';
-            ctx.fillRect(105, 118, 14, 32);
-            ctx.fillStyle = '#87e8de';
-            ctx.fillRect(121, 122, 14, 28);
-            ctx.fillStyle = '#ffe58f';
-            ctx.fillRect(137, 115, 14, 35);
-            // Little potted plant
-            ctx.fillStyle = '#ff9c6e';
-            ctx.fillRect(195, 130, 22, 20);
-            ctx.fillStyle = '#73d13d';
+            const portalGlow = ctx.createRadialGradient(mX, mY, 6, mX, mY, pulseR);
+            portalGlow.addColorStop(0, 'rgba(255, 240, 246, 0.75)');
+            portalGlow.addColorStop(0.35, 'rgba(255, 133, 192, 0.55)');
+            portalGlow.addColorStop(0.7, 'rgba(181, 245, 236, 0.25)');
+            portalGlow.addColorStop(1, 'rgba(83, 29, 171, 0)');
+            ctx.fillStyle = portalGlow;
             ctx.beginPath();
-            ctx.arc(206, 125, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            // Lily's Cute Gaming Chair (where she starts sitting)
-            ctx.save();
-            const chairX = 248;
-            ctx.fillStyle = '#ff85c0';
-            drawRoundedRect(ctx, chairX - 18, 325, 22, 68, 10);
-            ctx.fill();
-            drawRoundedRect(ctx, chairX - 16, 382, 46, 14, 6);
-            ctx.fill();
-            ctx.fillStyle = '#d3adf7';
-            ctx.fillRect(chairX + 2, 396, 8, 34);
-            ctx.fillRect(chairX - 14, 426, 40, 6);
-            ctx.restore();
-
-            // DESK & GLOWING PINK COMPUTER ON THE RIGHT
-            const deskX = introRoom.deskX;
-            ctx.save();
-            // Desk legs & pastel top
-            ctx.fillStyle = '#f9f0ff';
-            ctx.fillRect(deskX + 12, 362, 14, 70);
-            ctx.fillRect(deskX + 154, 362, 14, 70);
-            ctx.fillStyle = '#ffadd2';
-            drawRoundedRect(ctx, deskX, 350, 185, 16, 6);
+            ctx.arc(mX, mY, pulseR, 0, Math.PI * 2);
             ctx.fill();
 
-            // Pink PC Tower with glowing heart LED
-            ctx.fillStyle = '#ff85c0';
-            ctx.strokeStyle = '#fff0f6';
-            ctx.lineWidth = 2;
-            drawRoundedRect(ctx, deskX + 130, 292, 42, 58, 8);
-            ctx.fill();
-            ctx.stroke();
-            drawHeartShape(ctx, deskX + 151, 312, 12, '#ffe58f');
-
-            // Pink Keyboard & Mouse on Desk
-            ctx.fillStyle = '#ffc2e2';
-            drawRoundedRect(ctx, deskX + 25, 344, 52, 6, 3);
-            ctx.fill();
-
-            // PINK COMPUTER MONITOR (WITH MAGICAL PORTAL SCREEN)
-            const monX = deskX + 24;
-            const monY = 266;
-            const monW = 92;
-            const monH = 68;
-
-            // Monitor Stand
-            ctx.fillStyle = '#ff66b3';
-            ctx.fillRect(monX + 38, monY + monH, 16, 16);
-            drawRoundedRect(ctx, monX + 24, monY + monH + 12, 44, 6, 3);
-            ctx.fill();
-
-            // Outer Pink Monitor Bezel + Cute Cat Ears on top of Monitor!
-            ctx.fillStyle = '#ff66b3';
-            ctx.strokeStyle = '#fff0f6';
-            ctx.lineWidth = 3;
-            drawRoundedRect(ctx, monX, monY, monW, monH, 12);
-            ctx.fill();
-            ctx.stroke();
-
-            // Glowing Screen Inside Pink Monitor
-            const scrX = monX + 7;
-            const scrY = monY + 7;
-            const scrW = monW - 14;
-            const scrH = monH - 14;
-
-            const scrGrad = ctx.createRadialGradient(
-                introRoom.monitorCenterX, introRoom.monitorCenterY, 4,
-                introRoom.monitorCenterX, introRoom.monitorCenterY, 55
-            );
-            scrGrad.addColorStop(0, '#fff0f6');
-            scrGrad.addColorStop(0.45, '#ff85c0');
-            scrGrad.addColorStop(1, '#531dab');
-            ctx.fillStyle = scrGrad;
-            drawRoundedRect(ctx, scrX, scrY, scrW, scrH, 8);
-            ctx.fill();
-
-            // Animated Swirling Portal inside the Pink Computer Screen
-            ctx.save();
-            ctx.translate(introRoom.monitorCenterX, introRoom.monitorCenterY);
+            // 🌀 Anillos giratorios del portal y estrella central mágica
+            ctx.translate(mX, mY);
             ctx.rotate(globalTick * 0.08);
-            for (let r = 8; r <= 26; r += 7) {
+            for (let r = 8; r <= 32; r += 7) {
                 ctx.strokeStyle = r % 2 === 0 ? '#ffe58f' : '#ffc2e2';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 2.5;
                 ctx.setLineDash([6, 5]);
                 ctx.beginPath();
                 ctx.arc(0, 0, r, 0, Math.PI * 2);
                 ctx.stroke();
             }
             ctx.setLineDash([]);
-            drawStarShape(ctx, 0, 0, 5, 8, 4, '#ffe58f');
+            drawStarShape(ctx, 0, 0, 5, 9, 4.5, '#ffe58f');
             ctx.restore();
 
-            // Outer magical aura pulsing from the pink monitor
-            const pulseR = 65 + Math.sin(globalTick * 0.1) * 10 + (introRoom.suctionProgress * 95);
-            const portalGlow = ctx.createRadialGradient(
-                introRoom.monitorCenterX, introRoom.monitorCenterY, 10,
-                introRoom.monitorCenterX, introRoom.monitorCenterY, pulseR
-            );
-            portalGlow.addColorStop(0, 'rgba(255, 133, 192, 0.45)');
-            portalGlow.addColorStop(0.6, 'rgba(255, 229, 143, 0.20)');
-            portalGlow.addColorStop(1, 'rgba(255, 133, 192, 0)');
-            ctx.fillStyle = portalGlow;
-            ctx.beginPath();
-            ctx.arc(introRoom.monitorCenterX, introRoom.monitorCenterY, pulseR, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
-
-            // Draw Lily in her bedroom (sitting, walking, or being sucked into the pink monitor!)
+            // 3. DIBUJAR A LILY EN LA HABITACIÓN CON LOS NUEVOS SPRITES (Reposo y Caminata)
             if (introRoom.suctionActive) {
                 const t = introRoom.suctionProgress;
-                const curX = introRoom.lilyX + (introRoom.monitorCenterX - introRoom.lilyX) * Math.pow(t, 0.75);
-                const curY = introRoom.lilyY + (introRoom.monitorCenterY - introRoom.lilyY) * Math.pow(t, 0.75);
+                const curX = introRoom.lilyX + (mX - introRoom.lilyX) * Math.pow(t, 0.75);
+                const curY = introRoom.lilyY + (mY - introRoom.lilyY) * Math.pow(t, 0.75);
                 const curScale = Math.max(0.05, 1.35 * (1 - t));
                 const curRot = t * Math.PI * 6;
 
-                // Spiral Vortex Beams pulling Lily into the screen
+                // Rayos de succión (vórtice espiral que atrae a Lily hacia la pantalla)
                 ctx.save();
-                ctx.translate(introRoom.monitorCenterX, introRoom.monitorCenterY);
+                ctx.translate(mX, mY);
                 ctx.rotate(-globalTick * 0.14);
                 for (let i = 0; i < 6; i++) {
                     ctx.rotate(Math.PI / 3);
-                    ctx.strokeStyle = i % 2 === 0 ? 'rgba(255, 158, 210, 0.7)' : 'rgba(255, 229, 143, 0.7)';
+                    ctx.strokeStyle = i % 2 === 0 ? 'rgba(255, 158, 210, 0.75)' : 'rgba(255, 229, 143, 0.75)';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
                     ctx.moveTo(0, 0);
-                    ctx.quadraticCurveTo(40, 35, (1 - t) * 130, 0);
+                    ctx.quadraticCurveTo(40, 35, (1 - t) * 140, 0);
                     ctx.stroke();
                 }
                 ctx.restore();
@@ -6771,7 +6616,9 @@
                 drawLilyCharacter(ctx, curX, curY, curScale, {
                     facing: 1,
                     onGround: false,
+                    sitting: false,
                     animTimer: globalTick * 0.2,
+                    animTime: (lily.animTime || 0) + globalTick / 60,
                     vx: 0,
                     vy: 0,
                     reachingArm: true,
@@ -6784,13 +6631,15 @@
                     onGround: true,
                     sitting: introRoom.sittingInChair,
                     animTimer: introRoom.animTimer,
+                    animTime: lily.animTime,
+                    idleStepIndex: lily.idleStepIndex,
                     vx: introRoom.animTimer > 0 ? 2 : 0,
                     vy: 0,
-                    reachingArm: introRoom.reachingScreen || (introRoom.lilyX > 500),
+                    reachingArm: introRoom.reachingScreen || (introRoom.lilyX >= 640),
                     power: 'none'
                 });
 
-                // Helpful Floating Arrow & Prompt above the Pink Computer
+                // Texto flotante de orientación
                 const bobY = Math.sin(globalTick * 0.1) * 6;
                 ctx.save();
                 ctx.font = 'bold 16px Fredoka, sans-serif';
@@ -6804,13 +6653,13 @@
                 ctx.strokeText(promptText, VIEW_W / 2, 52);
                 ctx.fillText(promptText, VIEW_W / 2, 52);
 
-                // Bouncing arrow over the pink monitor
-                ctx.font = 'bold 26px Fredoka, sans-serif';
-                ctx.fillText('⬇️', introRoom.monitorCenterX, 238 + bobY);
+                // Flecha indicadora ⬇️ rebotando sobre la pantalla mágica (825, 285)
+                ctx.font = 'bold 28px Fredoka, sans-serif';
+                ctx.fillText('⬇️', mX, mY - 60 + bobY);
                 ctx.restore();
             }
 
-            // Render particles & floating texts
+            // 4. Renderizado de partículas y textos flotantes
             particles.forEach(p => {
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, p.life);
