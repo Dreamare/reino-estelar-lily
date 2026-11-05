@@ -1048,6 +1048,14 @@
                 bgFallback: './asets/bg_cosmic_sunset.jpg',
                 bedroom: './asets/bg_bedroom.jpg',
                 bedroomFallback: './asets/bg_bedroom.jpg.jpg',
+                bg1_1: './asets/mundos/Mundo 1-1.jpeg',
+                bg1_1Fallback: './asets/mundos/mundo_1_1.jpeg',
+                bg1_2: './asets/mundos/Mundo 1-2.jpg',
+                bg1_2Fallback: './asets/mundos/mundo_1_2.jpg',
+                bg1_3: './asets/mundos/Mundo 1-3.jpg',
+                bg1_3Fallback: './asets/mundos/mundo_1_3.jpg',
+                bg1_4: './asets/mundos/Mundo 1-4.jpg',
+                bg1_4Fallback: './asets/mundos/mundo_1_4.jpg',
                 tileset: './asets/tileset_platforms.png',
                 lily: './asets/sprites_lily.png',
                 props: './asets/sprites_props_enemies.png',
@@ -1565,6 +1573,30 @@
                     }
                 };
                 bedroomImg.src = this.sources.bedroom;
+
+                // 1c. Cargar fondos ilustrados específicos de cada mundo desde ./asets/mundos/
+                const worldBgDefs = [
+                    { key: 'bg1_1', src: this.sources.bg1_1, fallback: this.sources.bg1_1Fallback },
+                    { key: 'bg1_2', src: this.sources.bg1_2, fallback: this.sources.bg1_2Fallback },
+                    { key: 'bg1_3', src: this.sources.bg1_3, fallback: this.sources.bg1_3Fallback },
+                    { key: 'bg1_4', src: this.sources.bg1_4, fallback: this.sources.bg1_4Fallback }
+                ];
+                worldBgDefs.forEach(def => {
+                    const wImg = new Image();
+                    wImg.onload = () => {
+                        this.assets[def.key] = wImg;
+                        this.ready[def.key] = true;
+                    };
+                    wImg.onerror = () => {
+                        if (!wImg.dataset.retried && def.fallback) {
+                            wImg.dataset.retried = '1';
+                            wImg.src = def.fallback;
+                        } else {
+                            this.ready[def.key] = false;
+                        }
+                    };
+                    wImg.src = def.src;
+                });
 
                 // 2. Cargar y procesar con Chroma Key las 3 hojas de sprites/tiles
                 ['tileset', 'lily', 'props'].forEach(key => {
@@ -6922,30 +6954,42 @@
         }
 
         function renderStarryNightBackground() {
-            const theme = LEVEL_THEMES[currentLevelIndex];
+            const theme = (typeof LEVEL_THEMES !== 'undefined' && LEVEL_THEMES[currentLevelIndex]) ? LEVEL_THEMES[currentLevelIndex] : null;
 
-            if (AssetManager.isReady('bg')) {
-                // 🎨 Fondo ilustrado (./asets/bg_cosmic_sunset.png) con parallax suave basado en cameraX
-                const bgImg = AssetManager.get('bg');
-                const drawW = Math.round(VIEW_W * 1.2);
+            // 🌌 Identificar la ilustración de fondo específica del mundo actual
+            let worldBgKey = null;
+            if (theme && theme.id) {
+                if (theme.id === '1-1' && AssetManager.isReady('bg1_1')) worldBgKey = 'bg1_1';
+                else if (theme.id === '1-2' && AssetManager.isReady('bg1_2')) worldBgKey = 'bg1_2';
+                else if (theme.id === '1-3' && AssetManager.isReady('bg1_3')) worldBgKey = 'bg1_3';
+                else if (theme.id === '1-4' && AssetManager.isReady('bg1_4')) worldBgKey = 'bg1_4';
+            }
+
+            const activeBgImg = worldBgKey ? AssetManager.get(worldBgKey) : (AssetManager.isReady('bg') ? AssetManager.get('bg') : null);
+
+            if (activeBgImg) {
+                // 🎨 Fondo ilustrado con parallax suave basado en cameraX
+                const drawW = Math.round(VIEW_W * 1.25);
                 const extraW = drawW - VIEW_W;
                 const maxCam = Math.max(1, (typeof levelWidth !== 'undefined' ? levelWidth : 4500) - VIEW_W);
                 const ratio = Math.max(0, Math.min(1, cameraX / maxCam));
                 const bgX = -ratio * extraW;
 
                 ctx.save();
-                ctx.drawImage(bgImg, bgX, 0, drawW, VIEW_H);
+                ctx.drawImage(activeBgImg, bgX, 0, drawW, VIEW_H);
 
-                // Sutil matiz atmosférico según el mundo para conservar la ambientación de cada nivel
-                if (theme.timeOfDay === 'dark_boss') {
-                    ctx.fillStyle = 'rgba(20, 4, 38, 0.38)';
-                    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-                } else if (theme.timeOfDay === 'ruined_earth') {
-                    ctx.fillStyle = 'rgba(21, 22, 30, 0.28)';
-                    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-                } else if (theme.timeOfDay === 'somber_sunset') {
-                    ctx.fillStyle = 'rgba(68, 13, 41, 0.25)';
-                    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+                // Matiz atmosférico solo cuando se utiliza el fondo genérico de fallback
+                if (!worldBgKey && theme) {
+                    if (theme.timeOfDay === 'dark_boss') {
+                        ctx.fillStyle = 'rgba(20, 4, 38, 0.38)';
+                        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+                    } else if (theme.timeOfDay === 'ruined_earth') {
+                        ctx.fillStyle = 'rgba(21, 22, 30, 0.28)';
+                        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+                    } else if (theme.timeOfDay === 'somber_sunset') {
+                        ctx.fillStyle = 'rgba(68, 13, 41, 0.25)';
+                        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+                    }
                 }
                 ctx.restore();
             } else {
