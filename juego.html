@@ -1065,9 +1065,9 @@
             assets: {},
             ready: {},
             sheets: {
-                run: { loaded: false, frames: [], refHeight: 196.0, avgHeight: 195.0 },
-                idle: { loaded: false, frames: [], refHeight: 196.0, avgHeight: 196.0 },
-                jump: { loaded: false, frames: [], refHeight: 196.0, avgHeight: 195.0 },
+                run: { loaded: false, frames: [], refHeight: 220.0, avgHeight: 211.0 },
+                idle: { loaded: false, frames: [], refHeight: 220.0, avgHeight: 220.0 },
+                jump: { loaded: false, frames: [], refHeight: 220.0, avgHeight: 210.0 },
                 action: { loaded: false, frames: [], refHeight: 200, avgHeight: 200 }
             },
 
@@ -1579,13 +1579,13 @@
                     img.src = this.sources[key];
                 });
 
-                // 3. Cargar hojas de animación de Lily Chibi desde ./asets/movimiento/ (correr 4x7, quieta 4x6, salto 2x8, acción 2x6)
+                // 3. Cargar hojas de animación definitiva de Lily desde ./asets/movimiento/ (correr 4x6, quieta 4x6, salto 4x4, acción 2x6)
                 const b64Sheets = (typeof window !== 'undefined' && window.LILY_SHEETS_B64) ? window.LILY_SHEETS_B64 : null;
 
                 const sheetDefs = [
-                    { key: 'run', rows: 4, cols: 7, refH: 196.0, src: this.sources.lilyRun, fallback: this.sources.lilyRunFallback },
-                    { key: 'idle', rows: 4, cols: 6, refH: 196.0, src: this.sources.lilyIdle, fallback: this.sources.lilyIdleFallback },
-                    { key: 'jump', rows: 2, cols: 8, refH: 196.0, src: this.sources.lilyJump, fallback: this.sources.lilyJumpFallback },
+                    { key: 'run', rows: 4, cols: 6, refH: 220.0, src: this.sources.lilyRun, fallback: this.sources.lilyRunFallback },
+                    { key: 'idle', rows: 4, cols: 6, refH: 220.0, src: this.sources.lilyIdle, fallback: this.sources.lilyIdleFallback },
+                    { key: 'jump', rows: 4, cols: 4, refH: 220.0, src: this.sources.lilyJump, fallback: this.sources.lilyJumpFallback },
                     { key: 'action', rows: 2, cols: 6, refH: null, src: this.sources.lilyAction, fallback: this.sources.lilyActionFallback }
                 ];
 
@@ -2877,10 +2877,10 @@
                 }
             }
 
-            // 4. Corriendo / Caminando fluido con 28 cuadros continuos en correr.png (4x7 a 24 FPS)
+            // 4. Corriendo / Caminando fluido con 24 cuadros continuos en correr.png (4x6 a 24 FPS)
             if (isMoving) {
                 const runFps = 24;
-                const numFrames = (sheets && sheets.run && sheets.run.frames && sheets.run.frames.length > 0) ? sheets.run.frames.length : 28;
+                const numFrames = (sheets && sheets.run && sheets.run.frames && sheets.run.frames.length > 0) ? sheets.run.frames.length : 24;
                 const idx = Math.floor(animTime * runFps) % numFrames;
                 return { sheetKey: 'run', frameIndex: idx, isIdle: false };
             }
