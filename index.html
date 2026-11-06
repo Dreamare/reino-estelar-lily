@@ -972,8 +972,12 @@
 
             <!-- PARTE DERECHA INFERIOR: INFORMACIÓN ESENCIAL DEL JUEGO + BOTONES DE ACCIÓN -->
             <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
-                <!-- Información Esencial de Lily: Vidas, Estrellas y Tiempo -->
+                <!-- Información Esencial de Lily: Poder Activo, Vidas, Estrellas y Tiempo -->
                 <div id="hud-bottom-right" class="flex items-center gap-1 sm:gap-1.5">
+                    <div class="mini-pill" id="mini-power-pill" title="Poder activo de Lily">
+                        <span id="mini-power-icon">⭐</span>
+                        <b id="mini-power-name">Salto Base</b>
+                    </div>
                     <div class="mini-pill" title="Vidas de Lily (❤️ Vidas: 3)">
                         <span>❤️</span>
                         <span class="text-[11px] sm:text-xs text-pink-200 font-semibold">Vidas:</span>
@@ -1700,12 +1704,18 @@
             const col = frameOverride !== null
                 ? (Math.max(0, Math.min(5, Math.floor(frameOverride))))
                 : (Math.floor(globalTick / 6) % 6);
-            return pSheet.frames[row * 6 + col] || null;
+            const fCanvas = pSheet.frames[row * 6 + col] || null;
+            if (!fCanvas) return null;
+            return {
+                canvas: fCanvas,
+                width: pSheet.cellW || 220,
+                height: pSheet.cellH || 220
+            };
         }
 
         // ✨ Helper de post-procesado: resplandores mágicos suaves (bloom aditivo)
         function drawMagicBloom(c, x, y, radius, innerColor = 'rgba(255, 229, 143, 0.55)', outerColor = 'rgba(255, 133, 192, 0)') {
-            if (radius <= 0) return;
+            if (!isFinite(x) || !isFinite(y) || !isFinite(radius) || radius <= 0) return;
             c.save();
             c.globalCompositeOperation = 'lighter';
             const grad = c.createRadialGradient(x, y, radius * 0.08, x, y, radius);
@@ -3736,6 +3746,7 @@
                         secretShrineHints.push({
                             x: spot.hintX + (h - 1) * 14,
                             baseY: spot.hintBaseY - h * 42,
+                            targetY: spot.shrineY,
                             shrineX: spot.shrineX + platW / 2,
                             shrineY: spot.shrineY,
                             phase: sIdx * 1.7 + h * 0.95
@@ -4418,14 +4429,24 @@
                 miniTimePill.classList.toggle('danger', timeLeftSeconds <= 20);
             }
 
+            const miniPowerIcon = document.getElementById('mini-power-icon');
+            const miniPowerName = document.getElementById('mini-power-name');
             if (lily.rocketTimer > 0) {
                 hudPowerName.textContent = `🚀 Cohete (${(lily.rocketTimer / 60).toFixed(1)}s)`;
+                if (miniPowerIcon) miniPowerIcon.textContent = '🚀';
+                if (miniPowerName) miniPowerName.textContent = `${(lily.rocketTimer / 60).toFixed(1)}s`;
             } else if (lily.power === 'double_jump') {
                 hudPowerName.textContent = '🪽 Salto Doble';
+                if (miniPowerIcon) miniPowerIcon.textContent = '🪽';
+                if (miniPowerName) miniPowerName.textContent = 'Salto x2';
             } else if (lily.power === 'heart_shot') {
                 hudPowerName.textContent = '💖 Corazones';
+                if (miniPowerIcon) miniPowerIcon.textContent = '💖';
+                if (miniPowerName) miniPowerName.textContent = 'Disparo';
             } else {
                 hudPowerName.textContent = '⭐ Salto Base';
+                if (miniPowerIcon) miniPowerIcon.textContent = '⭐';
+                if (miniPowerName) miniPowerName.textContent = 'Normal';
             }
 
             updateStoryGuide();
@@ -8031,7 +8052,8 @@
             secretShrineHints.forEach(hint => {
                 if (hint.x < cameraX - 60 || hint.x > cameraX + VIEW_W + 60) return;
                 const progress = ((globalTick * 0.016 + hint.phase) % 1);
-                const curY = hint.baseY + (hint.targetY - hint.baseY) * progress;
+                const targetY = (hint.targetY !== undefined) ? hint.targetY : ((hint.shrineY !== undefined) ? hint.shrineY : (hint.baseY - 180));
+                const curY = hint.baseY + (targetY - hint.baseY) * progress;
                 const swayX = hint.x + Math.sin(globalTick * 0.06 + hint.phase) * 7;
                 const alpha = Math.sin(progress * Math.PI) * 0.58;
                 ctx.save();
@@ -10089,7 +10111,6 @@
                 } else {
                     renderStarryNightBackground();
                     renderWorld();
-                    drawInGameHUD();
                     renderPowerRevealOverlay();
                     drawFireworks();
                     if (gameState === 'GAME_OVER') drawGameOverScreen();
